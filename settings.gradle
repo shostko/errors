@@ -1,2 +1,2 @@
-include ':sample', ':errors'
+include ':sample', ':errors', ':error-rx'
 rootProject.name='Errors'
