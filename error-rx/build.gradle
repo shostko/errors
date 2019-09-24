@@ -22,7 +22,7 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation project(':errors')
+    implementation project(':error')
 
     compileOnly 'androidx.annotation:annotation:1.1.0'
     compileOnly 'io.reactivex.rxjava2:rxjava:2.2.11'
