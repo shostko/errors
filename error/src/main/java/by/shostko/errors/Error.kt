@@ -53,6 +53,11 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
     }
 }
 
+object NoError : Error(EmptyErrorCode, null) {
+    override fun text(context: Context): CharSequence = ""
+    override fun toString(): String = "NoError"
+}
+
 abstract class ErrorCode private constructor(private val idProvider: (ErrorCode) -> String) {
     constructor(id: String) : this({ id })
     constructor(domain: String, value: Any? = null) : this({ concat(domain, value) })
