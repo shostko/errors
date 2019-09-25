@@ -1,14 +1,25 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'com.novoda.bintray-release'
+
+publish {
+    userOrg = 'shostko'
+    repoName = 'android'
+    groupId = 'by.shostko'
+    artifactId = 'error-rx'
+    publishVersion = rootProject.ext.versionName
+    desc = 'Errors wrapper. rx support'
+    website = 'https://github.com/shostko/errors'
+}
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 29
-        versionCode 1
-        versionName "0.1"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
     }
 
     buildTypes {
