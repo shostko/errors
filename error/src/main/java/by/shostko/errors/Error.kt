@@ -95,7 +95,7 @@ open class SimpleErrorCode : ErrorCode {
         this.text = text
     }
 
-    constructor(value: Int? = null, text: String?) : super(value) {
+    constructor(value: Any?, text: String?) : super(value) {
         this.text = text
     }
 
@@ -116,7 +116,11 @@ open class ResErrorCode : ErrorCode {
         this.resId = resId
     }
 
-    constructor(value: Any? = null, @StringRes resId: Int) : super(value) {
+    constructor(value: Any?, @StringRes resId: Int) : super(value) {
+        this.resId = resId
+    }
+
+    constructor(@StringRes resId: Int) : super(null) {
         this.resId = resId
     }
 
@@ -140,12 +144,17 @@ open class FormattedResErrorCode : ErrorCode {
         this.args = args
     }
 
-    constructor(value: Any? = null, @StringRes resId: Int, vararg args: Any) : super(value) {
+    constructor(value: Any?, @StringRes resId: Int, vararg args: Any) : super(value) {
+        this.resId = resId
+        this.args = args
+    }
+
+    constructor(@StringRes resId: Int, vararg args: Any) : super(null) {
         this.resId = resId
         this.args = args
     }
 
     private val resId: Int
     private val args: Array<out Any>
-    override fun message(context: Context): String? = context.getString(resId, args)
+    override fun message(context: Context): String? = context.getString(resId, *args)
 }
