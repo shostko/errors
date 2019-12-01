@@ -34,3 +34,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     compileOnly 'androidx.annotation:annotation:1.1.0'
 }
+
+afterEvaluate {
+    generateReleaseBuildConfig.enabled = false
+}

@@ -43,3 +43,7 @@ dependencies {
     compileOnly 'by.shostko:status-handler:0.3.2'
     compileOnly 'by.shostko:status-handler-viewmodel:0.3.2'
 }
+
+afterEvaluate {
+    generateReleaseBuildConfig.enabled = false
+}
