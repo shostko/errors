@@ -3,6 +3,7 @@
 package by.shostko.errors
 
 import android.content.Context
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 
 sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
@@ -31,6 +32,9 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
     private fun original(): String? = cause?.let { if (it is Error) it.original() else it.message }
     override fun toString(): String = "Error(${id()}; ${original()})"
 
+    @DrawableRes
+    open fun image(): Int? = code.image
+
     open fun text(context: Context): CharSequence {
         var message = message(context)
         if (config.isDebug && message.isNullOrBlank()) {
@@ -43,7 +47,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
         return if (config.shouldAddErrorId) config.addErrorId(id(), result) else result
     }
 
-    open class Unexpected(cause: Throwable) : Error(SimpleErrorCode(cause::class.java, null, null), cause)
+    open class Unexpected(cause: Throwable) : Error(SimpleErrorCode(cause::class.java, null, null, null), cause)
 
     open class Custom(code: ErrorCode) : Error(code, null)
 
@@ -58,11 +62,11 @@ object NoError : Error(EmptyErrorCode, null) {
     override fun toString(): String = "NoError"
 }
 
-abstract class ErrorCode private constructor(private val idProvider: (ErrorCode) -> String) {
-    constructor(id: String) : this({ id })
-    constructor(domain: String, value: Any? = null) : this({ concat(domain, value) })
-    constructor(domain: Class<*>, value: Any? = null) : this({ concat(domain.simpleName.removeSuffix(), value) })
-    constructor(value: Any? = null) : this({ concat(it::class.java.simpleName.removeSuffix(), value) })
+abstract class ErrorCode private constructor(private val idProvider: (ErrorCode) -> String, @DrawableRes val image: Int? = null) {
+    constructor(id: String, @DrawableRes image: Int? = null) : this({ id }, image)
+    constructor(domain: String, value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(domain, value) }, image)
+    constructor(domain: Class<*>, value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(domain.simpleName.removeSuffix(), value) }, image)
+    constructor(value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(it::class.java.simpleName.removeSuffix(), value) }, image)
 
     companion object {
         private val SUFFIX: String = ErrorCode::class.java.simpleName
@@ -79,23 +83,23 @@ object EmptyErrorCode : ErrorCode("X") {
 }
 
 open class SimpleErrorCode : ErrorCode {
-    constructor(id: String) : super(id)
-    constructor(domain: String, value: Any? = null) : super(domain, value)
-    constructor(domain: Class<*>, value: Any? = null) : super(domain, value)
-    constructor(value: Any? = null) : super(value)
-    constructor(id: String, text: String?) : super(id) {
+    constructor(id: String, @DrawableRes image: Int? = null) : super(id, image)
+    constructor(domain: String, value: Any? = null, @DrawableRes image: Int? = null) : super(domain, value, image)
+    constructor(domain: Class<*>, value: Any? = null, @DrawableRes image: Int? = null) : super(domain, value, image)
+    constructor(value: Any? = null, @DrawableRes image: Int? = null) : super(value, image)
+    constructor(id: String, text: String?, @DrawableRes image: Int? = null) : super(id, image) {
         this.text = text
     }
 
-    constructor(domain: String, value: Any? = null, text: String?) : super(domain, value) {
+    constructor(domain: String, value: Any? = null, text: String?, @DrawableRes image: Int? = null) : super(domain, value, image) {
         this.text = text
     }
 
-    constructor(domain: Class<*>, value: Any? = null, text: String?) : super(domain, value) {
+    constructor(domain: Class<*>, value: Any? = null, text: String?, @DrawableRes image: Int? = null) : super(domain, value, image) {
         this.text = text
     }
 
-    constructor(value: Any?, text: String?) : super(value) {
+    constructor(value: Any?, text: String?, @DrawableRes image: Int? = null) : super(value, image) {
         this.text = text
     }
 
@@ -104,23 +108,23 @@ open class SimpleErrorCode : ErrorCode {
 }
 
 open class ResErrorCode : ErrorCode {
-    constructor(id: String, @StringRes resId: Int) : super(id) {
+    constructor(id: String, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(id, image) {
         this.resId = resId
     }
 
-    constructor(domain: String, value: Any? = null, @StringRes resId: Int) : super(domain, value) {
+    constructor(domain: String, value: Any? = null, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(domain, value, image) {
         this.resId = resId
     }
 
-    constructor(domain: Class<*>, value: Any? = null, @StringRes resId: Int) : super(domain, value) {
+    constructor(domain: Class<*>, value: Any? = null, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(domain, value, image) {
         this.resId = resId
     }
 
-    constructor(value: Any?, @StringRes resId: Int) : super(value) {
+    constructor(value: Any?, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(value, image) {
         this.resId = resId
     }
 
-    constructor(@StringRes resId: Int) : super(null) {
+    constructor(@StringRes resId: Int, @DrawableRes image: Int? = null) : super(null, image) {
         this.resId = resId
     }
 
@@ -129,27 +133,27 @@ open class ResErrorCode : ErrorCode {
 }
 
 open class FormattedResErrorCode : ErrorCode {
-    constructor(id: String, @StringRes resId: Int, vararg args: Any) : super(id) {
+    constructor(id: String, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(id, image) {
         this.resId = resId
         this.args = args
     }
 
-    constructor(domain: String, value: Any? = null, @StringRes resId: Int, vararg args: Any) : super(domain, value) {
+    constructor(domain: String, value: Any? = null, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(domain, value, image) {
         this.resId = resId
         this.args = args
     }
 
-    constructor(domain: Class<*>, value: Any? = null, @StringRes resId: Int, vararg args: Any) : super(domain, value) {
+    constructor(domain: Class<*>, value: Any? = null, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(domain, value, image) {
         this.resId = resId
         this.args = args
     }
 
-    constructor(value: Any?, @StringRes resId: Int, vararg args: Any) : super(value) {
+    constructor(value: Any?, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(value, image) {
         this.resId = resId
         this.args = args
     }
 
-    constructor(@StringRes resId: Int, vararg args: Any) : super(null) {
+    constructor(@StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(null, image) {
         this.resId = resId
         this.args = args
     }
