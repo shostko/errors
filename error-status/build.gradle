@@ -34,7 +34,7 @@ dependencies {
 
     compileOnly project(':error')
 
-    compileOnly 'by.shostko:status-handler:0.3.2'
+    compileOnly 'by.shostko:status-handler:0.4'
 }
 
 afterEvaluate {
