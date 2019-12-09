@@ -1,4 +1,4 @@
-# StatusHandler
+# Errors
 
 [ ![Download](https://api.bintray.com/packages/shostko/android/error/images/download.svg) ](https://bintray.com/shostko/android/error/_latestVersion)
 Wraps and helps working with exceptions and errors
