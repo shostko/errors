@@ -62,6 +62,10 @@ object NoError : Error(EmptyErrorCode, null) {
     override fun toString(): String = "NoError"
 }
 
+object UnknownError : Error(EmptyErrorCode, null) {
+    override fun toString(): String = "UnknownError"
+}
+
 abstract class ErrorCode private constructor(private val idProvider: (ErrorCode) -> String, @DrawableRes val image: Int? = null) {
     constructor(id: String, @DrawableRes image: Int? = null) : this({ id }, image)
     constructor(domain: String, value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(domain, value) }, image)
