@@ -22,26 +22,6 @@ open class BaseErrorCode(
     }
 }
 
-open class CachedErrorCode(
-    idProvider: () -> String,
-    domainProvider: () -> String,
-    logMessageProvider: () -> String,
-    extraProvider: (() -> Any?)?,
-    messageProvider: ((Context) -> CharSequence?)?,
-    fallbackProvider: () -> Boolean
-) : BaseErrorCode(idProvider, domainProvider, logMessageProvider, extraProvider, messageProvider, fallbackProvider) {
-
-    private val id by lazy { super.id() }
-    private val domain by lazy { super.domain() }
-    private val log by lazy { super.log() }
-    private val fallback by lazy { super.isFallback() }
-
-    override fun id(): String = id
-    override fun domain(): String = domain
-    override fun log(): String = log
-    override fun isFallback(): Boolean = fallback
-}
-
 open class SimpleErrorCode(
     private val id: String,
     private val message: CharSequence? = null,

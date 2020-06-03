@@ -15,6 +15,7 @@ interface ErrorCode {
 
     class Builder {
 
+        private var wrapper: ((ErrorCode) -> ErrorCode)? = null
         private var cached: Boolean = true
         private var idProvider: (() -> String)? = null
         private var domainProvider: (() -> String)? = null
@@ -23,6 +24,10 @@ interface ErrorCode {
         private var extraProvider: (() -> Any?)? = null
         private var fallbackProvider: (() -> Boolean)? = null
         private var messageProvider: ((Context) -> CharSequence?)? = null
+
+        fun wrap(wrapper: (ErrorCode) -> ErrorCode): Builder = apply {
+            this@Builder.wrapper = wrapper
+        }
 
         fun noCache(): Builder = apply {
             cached = false
@@ -100,8 +105,7 @@ interface ErrorCode {
         fun build(): ErrorCode {
             val idProvider = idProvider ?: domainProvider?.let { IdProvider(it, domainToIdMapper ?: DomainToIdMapper) }
             requireNotNull(idProvider) { "Id or Domain is required to build ErrorCode" }
-            val creator = if (cached) ::CachedErrorCode else ::BaseErrorCode
-            return creator(
+            var code: ErrorCode = BaseErrorCode(
                 idProvider,
                 domainProvider ?: DomainProvider,
                 logProvider ?: NullLogProvider,
@@ -109,6 +113,8 @@ interface ErrorCode {
                 messageProvider,
                 fallbackProvider ?: FalseFallbackProvider
             )
+            code = wrapper?.invoke(code) ?: code
+            return if (cached) code.cached() else code
         }
     }
 }
