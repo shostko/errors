@@ -3,18 +3,18 @@
 package by.shostko.errors
 
 import android.content.Context
-import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 
 sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
 
     companion object {
-        private var config: Config = BaseConfig()
+        internal var config: Config = BaseConfig()
         fun init(config: Config) {
             this.config = config
         }
 
         fun cast(throwable: Throwable): Error = throwable as? Error ?: Unexpected(throwable)
+        fun materialize(throwable: Throwable): Error = throwable as? Error ?: Materialized(throwable)
         fun wrap(throwable: Throwable, code: ErrorCode): Error = Child(code, cast(throwable))
         fun wrap(throwable: Throwable, id: String): Error = Child(SimpleErrorCode(id), cast(throwable))
         fun wrap(throwable: Throwable, id: String, message: String?): Error = Child(SimpleErrorCode(id, message), cast(throwable))
@@ -28,141 +28,67 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
     }
 
     open fun id(): String = code.id()
-    protected open fun message(context: Context): String? = code.message(context)
-    private fun original(): String? = cause?.let { if (it is Error) it.original() else it.message }
-    override fun toString(): String = "Error(${id()}; ${original()})"
-
-    @DrawableRes
-    open fun image(): Int? = code.image
+    protected open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
+    override fun toString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
+    fun stack(): String? = StringBuilder().apply {
+        append(this@Error.toString())
+        var tmp: Throwable? = cause
+        while (tmp != null) {
+            append('\n')
+            append(tmp.toString())
+            tmp = tmp.cause
+        }
+    }.toString()
 
     open fun text(context: Context): CharSequence {
-        var message = message(context)
+        var (message, _) = message(context)
         if (config.isDebug && message.isNullOrBlank()) {
             message = super.message
         }
         if (message.isNullOrBlank()) {
-            message = config.unknownError(context)
+            message = config.unknownError(context, cause)
         }
-        val result: String = message.toString()
-        return if (config.shouldAddErrorId) config.addErrorId(id(), result) else result
+        return if (config.shouldAddErrorId) config.addErrorId(id(), message) else message
     }
 
-    open class Unexpected(cause: Throwable) : Error(SimpleErrorCode(cause::class.java, null, null, null), cause)
+    private class Materialized(domain: String, cause: Throwable) : Error(
+        SimpleErrorCode(id = DomainToIdMapper(domain), message = cause.localizedMessage, domain = domain),
+        cause
+    ) {
+        constructor(cause: Throwable) : this(cause::class.java.simpleName, cause)
+    }
 
-    open class Custom(code: ErrorCode) : Error(code, null)
+    class Unexpected private constructor(domain: String, cause: Throwable) : Error(
+        SimpleErrorCode(id = DomainToIdMapper(domain), domain = domain),
+        cause
+    ) {
+        constructor(cause: Throwable) : this(cause::class.java.simpleName, cause)
+    }
 
-    open class Child(code: ErrorCode, override val cause: Error) : Error(code, cause) {
+    class Custom(code: ErrorCode) : Error(code, null)
+
+    class Child(code: ErrorCode, override val cause: Error) : Error(code, cause) {
         override fun id(): String = "${super.id()}-${cause.id()}"
-        override fun message(context: Context): String? = cause.message(context).let { if (it.isNullOrBlank()) super.message(context) else it }
+        override fun message(context: Context): Pair<CharSequence?, Boolean> {
+            val parent = cause.message(context)
+            val (message, fallback) = parent
+            return if (message.isNullOrBlank()) {
+                super.message(context)
+            } else if (!fallback) {
+                parent
+            } else {
+                val own = super.message(context)
+                if (own.first.isNullOrBlank()) parent else own
+            }
+        }
     }
 }
 
-object NoError : Error(EmptyErrorCode, null) {
+object NoError : Error(SimpleErrorCode("X"), null) {
     override fun text(context: Context): CharSequence = ""
     override fun toString(): String = "NoError"
 }
 
-object UnknownError : Error(EmptyErrorCode, null) {
+object UnknownError : Error(SimpleErrorCode("UE", null, "UnknownError"), null) {
     override fun toString(): String = "UnknownError"
-}
-
-abstract class ErrorCode private constructor(private val idProvider: (ErrorCode) -> String, @DrawableRes val image: Int? = null) {
-    constructor(id: String, @DrawableRes image: Int? = null) : this({ id }, image)
-    constructor(domain: String, value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(domain, value) }, image)
-    constructor(domain: Class<*>, value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(domain.simpleName.removeSuffix(), value) }, image)
-    constructor(value: Any? = null, @DrawableRes image: Int? = null) : this({ concat(it::class.java.simpleName.removeSuffix(), value) }, image)
-
-    companion object {
-        private val SUFFIX: String = ErrorCode::class.java.simpleName
-        private fun String.removeSuffix(): String = removeSuffix(SUFFIX)
-        fun concat(domain: String, value: Any?): String = domain.filter { it.isUpperCase() }.let { if (value == null) it else "$it$value" }
-    }
-
-    abstract fun message(context: Context): String?
-    fun id(): String = idProvider(this)
-}
-
-object EmptyErrorCode : ErrorCode("X") {
-    override fun message(context: Context): String? = null
-}
-
-open class SimpleErrorCode : ErrorCode {
-    constructor(id: String, @DrawableRes image: Int? = null) : super(id, image)
-    constructor(domain: String, value: Any? = null, @DrawableRes image: Int? = null) : super(domain, value, image)
-    constructor(domain: Class<*>, value: Any? = null, @DrawableRes image: Int? = null) : super(domain, value, image)
-    constructor(value: Any? = null, @DrawableRes image: Int? = null) : super(value, image)
-    constructor(id: String, text: String?, @DrawableRes image: Int? = null) : super(id, image) {
-        this.text = text
-    }
-
-    constructor(domain: String, value: Any? = null, text: String?, @DrawableRes image: Int? = null) : super(domain, value, image) {
-        this.text = text
-    }
-
-    constructor(domain: Class<*>, value: Any? = null, text: String?, @DrawableRes image: Int? = null) : super(domain, value, image) {
-        this.text = text
-    }
-
-    constructor(value: Any?, text: String?, @DrawableRes image: Int? = null) : super(value, image) {
-        this.text = text
-    }
-
-    private var text: String? = null
-    override fun message(context: Context): String? = text
-}
-
-open class ResErrorCode : ErrorCode {
-    constructor(id: String, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(id, image) {
-        this.resId = resId
-    }
-
-    constructor(domain: String, value: Any? = null, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(domain, value, image) {
-        this.resId = resId
-    }
-
-    constructor(domain: Class<*>, value: Any? = null, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(domain, value, image) {
-        this.resId = resId
-    }
-
-    constructor(value: Any?, @StringRes resId: Int, @DrawableRes image: Int? = null) : super(value, image) {
-        this.resId = resId
-    }
-
-    constructor(@StringRes resId: Int, @DrawableRes image: Int? = null) : super(null, image) {
-        this.resId = resId
-    }
-
-    private var resId: Int
-    override fun message(context: Context): String? = context.getString(resId)
-}
-
-open class FormattedResErrorCode : ErrorCode {
-    constructor(id: String, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(id, image) {
-        this.resId = resId
-        this.args = args
-    }
-
-    constructor(domain: String, value: Any? = null, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(domain, value, image) {
-        this.resId = resId
-        this.args = args
-    }
-
-    constructor(domain: Class<*>, value: Any? = null, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(domain, value, image) {
-        this.resId = resId
-        this.args = args
-    }
-
-    constructor(value: Any?, @StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(value, image) {
-        this.resId = resId
-        this.args = args
-    }
-
-    constructor(@StringRes resId: Int, vararg args: Any, @DrawableRes image: Int? = null) : super(null, image) {
-        this.resId = resId
-        this.args = args
-    }
-
-    private val resId: Int
-    private val args: Array<out Any>
-    override fun message(context: Context): String? = context.getString(resId, *args)
 }

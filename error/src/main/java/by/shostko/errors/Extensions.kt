@@ -4,7 +4,9 @@ package by.shostko.errors
 
 import androidx.annotation.StringRes
 
+fun Error.asThrowable(): Throwable? = if (this is NoError) null else this
 fun Throwable.asError(): Error = Error.cast(this)
+fun Throwable.materialize(): Error = Error.materialize(this)
 
 fun Throwable.wrap(code: ErrorCode): Error = Error.wrap(this, code)
 fun Throwable.wrap(id: String): Error = Error.wrap(this, id)
