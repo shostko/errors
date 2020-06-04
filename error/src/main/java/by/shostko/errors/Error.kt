@@ -51,19 +51,9 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
         return if (config.shouldAddErrorId) config.addErrorId(id(), message) else message
     }
 
-    private class Materialized(domain: String, cause: Throwable) : Error(
-        SimpleErrorCode(id = DomainToIdMapper(domain), message = cause.localizedMessage, domain = domain),
-        cause
-    ) {
-        constructor(cause: Throwable) : this(cause::class.java.simpleName, cause)
-    }
+    private class Materialized(cause: Throwable) : Error(SimpleErrorCode(cause.javaClass, cause.localizedMessage), cause)
 
-    class Unexpected private constructor(domain: String, cause: Throwable) : Error(
-        SimpleErrorCode(id = DomainToIdMapper(domain), domain = domain),
-        cause
-    ) {
-        constructor(cause: Throwable) : this(cause::class.java.simpleName, cause)
-    }
+    class Unexpected(cause: Throwable) : Error(SimpleErrorCode(cause.javaClass), cause)
 
     class Custom(code: ErrorCode) : Error(code, null)
 

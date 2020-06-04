@@ -29,6 +29,20 @@ open class SimpleErrorCode(
     private val logMessage: String = message.toString(),
     private val fallback: Boolean = false
 ) : ErrorCode {
+
+    constructor(
+        clazz: Class<*>,
+        message: CharSequence? = null,
+        logMessage: String = message.toString(),
+        fallback: Boolean = false
+    ) : this(
+        id = DomainToIdMapper(clazz.simpleName),
+        message = message,
+        domain = clazz.simpleName,
+        logMessage = logMessage,
+        fallback = fallback
+    )
+
     override fun id(): String = id
     override fun domain(): String = domain
     override fun log(): String = logMessage
