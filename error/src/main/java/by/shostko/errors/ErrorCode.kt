@@ -41,8 +41,40 @@ interface ErrorCode {
             idProvider = { id }
         }
 
+        fun id(id: () -> String, extra: () -> Any?): Builder = apply {
+            idProvider = id
+            extraProvider = extra
+        }
+
+        fun id(id: String, extra: () -> Any?): Builder = apply {
+            idProvider = { id }
+            extraProvider = extra
+        }
+
+        fun id(id: () -> String, extra: Any?): Builder = apply {
+            idProvider = id
+            extraProvider = extra?.let { ExtraProvider(it) }
+        }
+
+        fun id(id: String, extra: Any?): Builder = apply {
+            idProvider = { id }
+            extraProvider = extra?.let { ExtraProvider(it) }
+        }
+
+        fun extra(extra: () -> Any?): Builder = apply {
+            extraProvider = extra
+        }
+
+        fun extra(extra: Any?): Builder = apply {
+            extraProvider = extra?.let { ExtraProvider(it) }
+        }
+
         fun domain(domain: () -> String): Builder = apply {
             domainProvider = domain
+        }
+
+        fun domain(domain: String): Builder = apply {
+            domainProvider = { domain }
         }
 
         fun domain(domain: () -> String, idMapper: (String) -> String): Builder = apply {
@@ -50,9 +82,13 @@ interface ErrorCode {
             domainToIdMapper = idMapper
         }
 
-        fun domain(domain: String, idMapper: ((String) -> String)? = null): Builder = apply {
+        fun domain(domain: String, idMapper: (String) -> String): Builder = apply {
             domainProvider = { domain }
             domainToIdMapper = idMapper
+        }
+
+        fun domainToIdMapper(mapper: (String) -> String): Builder = apply {
+            domainToIdMapper = mapper
         }
 
         fun log(log: () -> String): Builder = apply {
@@ -65,14 +101,6 @@ interface ErrorCode {
 
         fun noLog(): Builder = apply {
             logProvider = NullLogProvider
-        }
-
-        fun extra(extra: () -> Any?): Builder = apply {
-            extraProvider = extra
-        }
-
-        fun extra(extra: Any?): Builder = apply {
-            extraProvider = extra?.let { ExtraProvider(it) }
         }
 
         fun fallback(fallback: () -> Boolean): Builder = apply {
