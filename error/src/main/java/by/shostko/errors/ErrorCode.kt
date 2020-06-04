@@ -13,6 +13,10 @@ interface ErrorCode {
     fun isFallback(): Boolean
     fun message(context: Context): CharSequence?
 
+    companion object {
+        fun build(block: Builder.() -> Unit): ErrorCode = Builder().apply(block).build()
+    }
+
     class Builder {
 
         private var wrapper: ((ErrorCode) -> ErrorCode)? = null
