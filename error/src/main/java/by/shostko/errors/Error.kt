@@ -34,7 +34,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
         append(this@Error.toString())
         var tmp: Throwable? = cause
         while (tmp != null) {
-            append('\n')
+            append(" => ")
             append(tmp.toString())
             tmp = tmp.cause
         }
