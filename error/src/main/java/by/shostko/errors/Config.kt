@@ -40,7 +40,7 @@ open class BaseConfig private constructor(
         setSpan(style, 0, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 
-    override fun unknownError(context: Context, cause: Throwable?): String = context.getString(R.string.unknown)
+    override fun unknownError(context: Context, cause: Throwable?): String = context.getString(R.string.by_shostko_error_unknown)
 
     override fun getResourceName(resId: Int): String = resourceNameProvider(resId)
 }
