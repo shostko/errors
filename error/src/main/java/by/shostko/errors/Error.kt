@@ -15,11 +15,11 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
 
         fun cast(throwable: Throwable): Error = throwable as? Error ?: Unexpected(throwable)
         fun materialize(throwable: Throwable): Error = throwable as? Error ?: Materialized(throwable)
-        fun wrap(throwable: Throwable, code: ErrorCode): Error = Child(code, cast(throwable))
-        fun wrap(throwable: Throwable, id: String): Error = Child(SimpleErrorCode(id), cast(throwable))
-        fun wrap(throwable: Throwable, id: String, message: String?): Error = Child(SimpleErrorCode(id, message), cast(throwable))
-        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int): Error = Child(ResErrorCode(id, resId), cast(throwable))
-        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int, vararg args: Any): Error = Child(FormattedResErrorCode(id, resId, args), cast(throwable))
+        fun wrap(throwable: Throwable, code: ErrorCode): Error = Child(code, throwable)
+        fun wrap(throwable: Throwable, id: String): Error = Child(SimpleErrorCode(id), throwable)
+        fun wrap(throwable: Throwable, id: String, message: String?): Error = Child(SimpleErrorCode(id, message), throwable)
+        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int): Error = Child(ResErrorCode(id, resId), throwable)
+        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int, vararg args: Any): Error = Child(FormattedResErrorCode(id, resId, args), throwable)
         fun custom(code: ErrorCode): Error = Custom(code)
         fun custom(id: String): Error = Custom(SimpleErrorCode(id))
         fun custom(id: String, message: String?): Error = Custom(SimpleErrorCode(id, message))
@@ -35,7 +35,16 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
         var tmp: Throwable? = cause
         while (tmp != null) {
             append(" => ")
-            append(tmp.toString())
+            if (tmp is Error) {
+                append(tmp.toString())
+            } else {
+                append(tmp.javaClass.simpleName)
+                append('(')
+                append(tmp.id())
+                append("; ")
+                append(tmp.message)
+                append(')')
+            }
             tmp = tmp.cause
         }
     }.toString()
@@ -57,20 +66,23 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
 
     class Custom(code: ErrorCode) : Error(code, null)
 
-    class Child(code: ErrorCode, override val cause: Error) : Error(code, cause) {
+    class Child(code: ErrorCode, override val cause: Throwable) : Error(code, cause) {
         override fun id(): String = "${super.id()}-${cause.id()}"
-        override fun message(context: Context): Pair<CharSequence?, Boolean> {
-            val parent = cause.message(context)
-            val (message, fallback) = parent
-            return if (message.isNullOrBlank()) {
-                super.message(context)
-            } else if (!fallback) {
-                parent
+        override fun message(context: Context): Pair<CharSequence?, Boolean> =
+            if (cause is Error) {
+                val parent = cause.message(context)
+                val (message, fallback) = parent
+                if (message.isNullOrBlank()) {
+                    super.message(context)
+                } else if (!fallback) {
+                    parent
+                } else {
+                    val own = super.message(context)
+                    if (own.first.isNullOrBlank()) parent else own
+                }
             } else {
-                val own = super.message(context)
-                if (own.first.isNullOrBlank()) parent else own
+                EMPTY_MESSAGE
             }
-        }
     }
 }
 
@@ -82,3 +94,6 @@ object NoError : Error(SimpleErrorCode("X"), null) {
 object UnknownError : Error(SimpleErrorCode("UE", null, "UnknownError"), null) {
     override fun toString(): String = "UnknownError"
 }
+
+private val EMPTY_MESSAGE = Pair(null, false)
+private fun Throwable.id(): String = if (this is Error) id() else DomainToIdMapper(javaClass.simpleName)
