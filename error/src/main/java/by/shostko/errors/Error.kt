@@ -5,7 +5,7 @@ package by.shostko.errors
 import android.content.Context
 import androidx.annotation.StringRes
 
-sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
+sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cause) {
 
     companion object {
         internal var config: Config = BaseConfig()
@@ -57,7 +57,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
     open fun text(context: Context): CharSequence {
         var (message, _) = message(context)
         if (config.isDebug && message.isNullOrBlank()) {
-            message = super.message
+            message = original().message
         }
         if (message.isNullOrBlank()) {
             message = config.unknownError(context, cause)
