@@ -28,8 +28,13 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
     }
 
     open fun id(): String = code.id()
-    protected open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
-    override fun toString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
+
+    fun original(): Throwable = when (val cause = cause) {
+        null -> this
+        is Error -> cause.original()
+        else -> cause
+    }
+
     fun stack(): String? = StringBuilder().apply {
         append(this@Error.toString())
         var tmp: Throwable? = cause
@@ -60,9 +65,13 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
         return if (config.shouldAddErrorId) config.addErrorId(id(), message) else message
     }
 
-    private class Materialized(cause: Throwable) : Error(SimpleErrorCode(cause.javaClass, cause.localizedMessage), cause)
+    protected open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
 
-    class Unexpected(cause: Throwable) : Error(SimpleErrorCode(cause.javaClass), cause)
+    override fun toString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
+
+    private class Materialized(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass, cause.localizedMessage), cause)
+
+    class Unexpected(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass), cause)
 
     class Custom(code: ErrorCode) : Error(code, null)
 
