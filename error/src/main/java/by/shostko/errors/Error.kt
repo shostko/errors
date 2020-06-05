@@ -56,7 +56,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         return if (config.shouldAddErrorId) config.addErrorId(id(), message) else message
     }
 
-    protected open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
+    internal open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
 
     override fun toString(): String = asString()
 
@@ -64,7 +64,11 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
 
     class Unexpected(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass), cause)
 
-    class Custom(code: ErrorCode) : Error(code, null)
+    open class Custom(code: ErrorCode) : Error(code, null) {
+        final override fun id(): String = super.id()
+        final override fun text(context: Context): CharSequence = super.text(context)
+        final override fun toString(): String = super.toString()
+    }
 
     class Child(code: ErrorCode, override val cause: Throwable) : Error(code, cause) {
         override fun id(): String = "${super.id()}-${cause.id()}"
