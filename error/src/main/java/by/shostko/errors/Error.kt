@@ -40,16 +40,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         var tmp: Throwable? = cause
         while (tmp != null) {
             append(" => ")
-            if (tmp is Error) {
-                append(tmp.toString())
-            } else {
-                append(tmp.javaClass.simpleName)
-                append('(')
-                append(tmp.id())
-                append("; ")
-                append(tmp.message)
-                append(')')
-            }
+            append(tmp.asString())
             tmp = tmp.cause
         }
     }.toString()
@@ -57,7 +48,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
     open fun text(context: Context): CharSequence {
         var (message, _) = message(context)
         if (config.isDebug && message.isNullOrBlank()) {
-            message = original().message
+            message = original().asString()
         }
         if (message.isNullOrBlank()) {
             message = config.unknownError(context, cause)
@@ -67,7 +58,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
 
     protected open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
 
-    override fun toString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
+    override fun toString(): String = asString()
 
     private class Materialized(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass, cause.localizedMessage), cause)
 
@@ -105,3 +96,11 @@ object UnknownError : Error(SimpleErrorCode("UE", null, "UnknownError"), null) {
 }
 
 private fun Throwable.id(): String = if (this is Error) id() else DomainToIdMapper(javaClass.simpleName)
+private fun Error.asString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
+private fun Throwable.asString(): String =
+    if (this is Error) {
+        this.asString()
+    } else {
+        val domain = javaClass.simpleName
+        "$domain(${DomainToIdMapper(domain)}; ${message})"
+    }
