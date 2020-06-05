@@ -31,14 +31,14 @@ open class SimpleErrorCode(
 ) : ErrorCode {
 
     constructor(
-        clazz: Class<*>,
+        domain: Class<*>,
         message: CharSequence? = null,
         logMessage: String = message.toString(),
         fallback: Boolean = false
     ) : this(
-        id = DomainToIdMapper(clazz.simpleName),
+        id = DomainToIdMapper(domain.simpleName),
         message = message,
-        domain = clazz.simpleName,
+        domain = domain.simpleName,
         logMessage = logMessage,
         fallback = fallback
     )
@@ -57,6 +57,20 @@ open class ResErrorCode(
     private val logMessage: String = Error.config.getResourceName(messageResId),
     private val fallback: Boolean = false
 ) : ErrorCode {
+
+    constructor(
+        domain: Class<*>,
+        @StringRes messageResId: Int,
+        logMessage: String = Error.config.getResourceName(messageResId),
+        fallback: Boolean = false
+    ) : this(
+        id = DomainToIdMapper(domain.simpleName),
+        messageResId = messageResId,
+        domain = domain.simpleName,
+        logMessage = logMessage,
+        fallback = fallback
+    )
+
     override fun id(): String = id
     override fun domain(): String = domain
     override fun log(): String = logMessage
@@ -72,6 +86,22 @@ open class FormattedResErrorCode(
     private val logMessage: String = Error.config.getResourceName(messageResId),
     private val fallback: Boolean = false
 ) : ErrorCode {
+
+    constructor(
+        domain: Class<*>,
+        @StringRes messageResId: Int,
+        args: Array<out Any>,
+        logMessage: String = Error.config.getResourceName(messageResId),
+        fallback: Boolean = false
+    ) : this(
+        id = DomainToIdMapper(domain.simpleName),
+        messageResId = messageResId,
+        args = args,
+        domain = domain.simpleName,
+        logMessage = logMessage,
+        fallback = fallback
+    )
+
     override fun id(): String = id
     override fun domain(): String = domain
     override fun log(): String = logMessage
