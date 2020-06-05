@@ -90,7 +90,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(cause) {
                     if (own.first.isNullOrBlank()) parent else own
                 }
             } else {
-                EMPTY_MESSAGE
+                super.message(context)
             }
     }
 }
@@ -104,5 +104,4 @@ object UnknownError : Error(SimpleErrorCode("UE", null, "UnknownError"), null) {
     override fun toString(): String = "UnknownError"
 }
 
-private val EMPTY_MESSAGE = Pair(null, false)
 private fun Throwable.id(): String = if (this is Error) id() else DomainToIdMapper(javaClass.simpleName)
