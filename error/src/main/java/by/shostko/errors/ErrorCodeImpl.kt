@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package by.shostko.errors
 
 import android.content.Context
@@ -88,6 +90,22 @@ open class FormattedResErrorCode(
 ) : ErrorCode {
 
     constructor(
+        id: String,
+        @StringRes messageResId: Int,
+        arg: Any,
+        domain: String,
+        logMessage: String = Error.config.getResourceName(messageResId),
+        fallback: Boolean = false
+    ) : this(
+        id = id,
+        messageResId = messageResId,
+        args = arrayOf(arg),
+        domain = domain,
+        logMessage = logMessage,
+        fallback = fallback
+    )
+
+    constructor(
         domain: Class<*>,
         @StringRes messageResId: Int,
         args: Array<out Any>,
@@ -97,6 +115,21 @@ open class FormattedResErrorCode(
         id = DomainToIdMapper(domain.simpleName),
         messageResId = messageResId,
         args = args,
+        domain = domain.simpleName,
+        logMessage = logMessage,
+        fallback = fallback
+    )
+
+    constructor(
+        domain: Class<*>,
+        @StringRes messageResId: Int,
+        arg: Any,
+        logMessage: String = Error.config.getResourceName(messageResId),
+        fallback: Boolean = false
+    ) : this(
+        id = DomainToIdMapper(domain.simpleName),
+        messageResId = messageResId,
+        args = arrayOf(arg),
         domain = domain.simpleName,
         logMessage = logMessage,
         fallback = fallback
