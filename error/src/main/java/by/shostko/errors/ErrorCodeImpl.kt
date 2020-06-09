@@ -93,7 +93,7 @@ open class FormattedResErrorCode(
         id: String,
         @StringRes messageResId: Int,
         arg: Any,
-        domain: String,
+        domain: String = id,
         logMessage: String = Error.config.getResourceName(messageResId),
         fallback: Boolean = false
     ) : this(
