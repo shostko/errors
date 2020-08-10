@@ -60,6 +60,36 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
 
     override fun toString(): String = asString()
 
+    inline fun <reified T> hasCause(): Boolean = hasCause { this is T }
+
+    fun hasCause(predicate: Throwable.() -> Boolean): Boolean {
+        var tmp: Throwable? = this
+        while (tmp != null) {
+            if (tmp.predicate()) {
+                return true
+            }
+            tmp = tmp.cause
+        }
+        return false
+    }
+
+    inline fun <reified T> hasCode(): Boolean = hasCode { this is T }
+
+    fun hasCode(code: ErrorCode): Boolean = hasCode { this == code }
+
+    fun hasCode(id: String): Boolean = hasCode { this.id() == id }
+
+    fun hasCode(predicate: ErrorCode.() -> Boolean): Boolean {
+        var tmp: Error? = this
+        while (tmp != null) {
+            if (tmp.code.predicate()) {
+                return true
+            }
+            tmp = tmp.cause as? Error
+        }
+        return false
+    }
+
     private class Materialized(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass, cause.localizedMessage), cause)
 
     class Unexpected(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass), cause)
