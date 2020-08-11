@@ -8,8 +8,10 @@ import androidx.annotation.StringRes
 sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cause) {
 
     companion object {
-        internal var config: Config = BaseConfig()
-        fun init(config: Config) {
+        internal var config: Config = Config.Default
+        fun configure(context: Context, isDebug: Boolean) = configure(Config.Base(context, isDebug))
+        fun configure(func: Config.Builder.() -> Unit) = configure(Config.build(func))
+        fun configure(config: Config) {
             this.config = config
         }
 
@@ -136,5 +138,6 @@ private fun Throwable.asString(): String =
         this.asString()
     } else {
         val domain = javaClass.simpleName
-        "$domain(${DomainToIdMapper(domain)}; ${message})"
+        val id = DomainToIdMapper(domain)
+        "$domain($id; ${message})"
     }
