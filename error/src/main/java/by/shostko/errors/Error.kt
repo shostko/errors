@@ -18,15 +18,15 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         fun cast(throwable: Throwable): Error = throwable as? Error ?: Unexpected(throwable)
         fun materialize(throwable: Throwable): Error = throwable as? Error ?: Materialized(throwable)
         fun wrap(throwable: Throwable, code: ErrorCode): Error = Child(code, throwable)
-        fun wrap(throwable: Throwable, id: String): Error = Child(SimpleErrorCode(id), throwable)
-        fun wrap(throwable: Throwable, id: String, message: String?): Error = Child(SimpleErrorCode(id, message), throwable)
-        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int): Error = Child(ResErrorCode(id, resId), throwable)
-        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int, vararg args: Any): Error = Child(FormattedResErrorCode(id, resId, args), throwable)
+        fun wrap(throwable: Throwable, id: String): Error = Child(SimpleErrorCode(id, config.defaultDomain, null), throwable)
+        fun wrap(throwable: Throwable, id: String, message: String?): Error = Child(SimpleErrorCode(id, config.defaultDomain, message), throwable)
+        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int): Error = Child(ResErrorCode(id, config.defaultDomain, resId), throwable)
+        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int, vararg args: Any): Error = Child(FormattedResErrorCode(id, config.defaultDomain, resId, args), throwable)
         fun custom(code: ErrorCode): Error = Custom(code)
-        fun custom(id: String): Error = Custom(SimpleErrorCode(id))
-        fun custom(id: String, message: String?): Error = Custom(SimpleErrorCode(id, message))
-        fun custom(id: String, @StringRes resId: Int): Error = Custom(ResErrorCode(id, resId))
-        fun custom(id: String, @StringRes resId: Int, vararg args: Any): Error = Custom(FormattedResErrorCode(id, resId, args))
+        fun custom(id: String): Error = Custom(SimpleErrorCode(id, config.defaultDomain, null))
+        fun custom(id: String, message: String?): Error = Custom(SimpleErrorCode(id, config.defaultDomain, message))
+        fun custom(id: String, @StringRes resId: Int): Error = Custom(ResErrorCode(id, config.defaultDomain, resId))
+        fun custom(id: String, @StringRes resId: Int, vararg args: Any): Error = Custom(FormattedResErrorCode(id, config.defaultDomain, resId, args))
     }
 
     open fun id(): String = code.id()
@@ -92,9 +92,13 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         return false
     }
 
-    private class Materialized(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass, cause.localizedMessage), cause)
+    private class Materialized(domain: String, cause: Throwable) : Error(SimpleErrorCode(config.domainToId(domain), domain, cause.localizedMessage), cause) {
+        constructor(cause: Throwable) : this(cause.javaClass.simpleName, cause)
+    }
 
-    class Unexpected(override val cause: Throwable) : Error(SimpleErrorCode(cause.javaClass), cause)
+    class Unexpected(domain: String, override val cause: Throwable) : Error(SimpleErrorCode(config.domainToId(domain), domain), cause) {
+        constructor(cause: Throwable) : this(cause.javaClass.simpleName, cause)
+    }
 
     open class Custom(code: ErrorCode) : Error(code, null) {
         final override fun id(): String = super.id()
@@ -122,12 +126,12 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
     }
 }
 
-object NoError : Error(SimpleErrorCode("X"), null) {
+object NoError : Error(SimpleErrorCode("X", "NoError"), null) {
     override fun text(context: Context): CharSequence = ""
     override fun toString(): String = "NoError"
 }
 
-object UnknownError : Error(SimpleErrorCode("UE", null, "UnknownError"), null) {
+object UnknownError : Error(SimpleErrorCode("UE", "UnknownError"), null) {
     override fun toString(): String = "UnknownError"
 }
 

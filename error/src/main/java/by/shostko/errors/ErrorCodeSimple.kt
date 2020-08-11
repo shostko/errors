@@ -12,17 +12,6 @@ open class SimpleErrorCode(
 
     constructor(
         id: String,
-        message: CharSequence? = null,
-        fallback: Boolean = false
-    ) : this(
-        id = id,
-        domain = Error.config.defaultDomain,
-        message = message,
-        fallback = fallback
-    )
-
-    constructor(
-        id: String,
         domain: Class<*>,
         message: CharSequence? = null,
         fallback: Boolean = false
@@ -46,17 +35,6 @@ open class ResErrorCode(
     @StringRes private val messageResId: Int,
     private val fallback: Boolean = false
 ) : ErrorCode {
-
-    constructor(
-        id: String,
-        @StringRes messageResId: Int,
-        fallback: Boolean = false
-    ) : this(
-        id = id,
-        domain = Error.config.defaultDomain,
-        messageResId = messageResId,
-        fallback = fallback
-    )
 
     constructor(
         id: String,
@@ -84,19 +62,6 @@ open class FormattedResErrorCode(
     private val args: Array<out Any>,
     private val fallback: Boolean = false
 ) : ErrorCode {
-
-    constructor(
-        id: String,
-        @StringRes messageResId: Int,
-        args: Array<out Any>,
-        fallback: Boolean = false
-    ) : this(
-        id = id,
-        domain = Error.config.defaultDomain,
-        messageResId = messageResId,
-        args = args,
-        fallback = fallback
-    )
 
     constructor(
         id: String,
