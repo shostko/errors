@@ -19,7 +19,6 @@ interface ErrorCode {
 
     class Builder {
 
-        private var extension: Bundle? = null
         private var cached: Boolean = true
         private var idProvider: (() -> String)? = null
         private var domainProvider: (() -> String)? = null
@@ -27,13 +26,6 @@ interface ErrorCode {
         private var extra: Any? = null
         private var fallback: Boolean = false
         private var messageProvider: ((Context) -> CharSequence?)? = null
-
-        fun extension(bundler: Bundle.() -> Unit): Builder = apply {
-            if (extension == null) {
-                extension = Bundle()
-            }
-            extension!!.bundler()
-        }
 
         fun noCache(): Builder = apply {
             cached = false
