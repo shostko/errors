@@ -3,8 +3,6 @@
 package by.shostko.errors
 
 import android.content.Context
-import android.os.Bundle
-import androidx.annotation.StringRes
 
 internal class ErrorCodeImpl(
     private val idProvider: () -> String,
@@ -47,4 +45,34 @@ internal class CachedErrorCode(
         this.id = result
         return result
     }
+}
+
+internal class StaticErrorCode(
+    private val id: String,
+    private val domain: String,
+    private val logMessage: String,
+    private val extra: Any?,
+    private val messageProvider: (Context) -> CharSequence?,
+    private val fallback: Boolean
+) : ErrorCode {
+    override fun message(context: Context): CharSequence? = messageProvider.invoke(context)
+    override fun isFallback(): Boolean = fallback
+    override fun domain(): String = domain
+    override fun log(): String = logMessage
+    override fun id(): String = id
+}
+
+internal class FullyStaticErrorCode(
+    private val id: String,
+    private val domain: String,
+    private val logMessage: String,
+    private val extra: Any?,
+    private val message: CharSequence?,
+    private val fallback: Boolean
+) : ErrorCode {
+    override fun message(context: Context): CharSequence? = message
+    override fun isFallback(): Boolean = fallback
+    override fun domain(): String = domain
+    override fun log(): String = logMessage
+    override fun id(): String = id
 }
