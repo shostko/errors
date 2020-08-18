@@ -1,17 +1,17 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.novoda.bintray-release'
+//apply plugin: 'com.novoda.bintray-release'
 
-publish {
-    userOrg = 'shostko'
-    repoName = 'android'
-    groupId = 'by.shostko'
-    artifactId = 'error-status'
-    publishVersion = rootProject.ext.versionName
-    desc = 'Errors wrapper. status-handler support'
-    website = 'https://github.com/shostko/errors'
-}
+//publish {
+//    userOrg = 'shostko'
+//    repoName = 'android'
+//    groupId = 'by.shostko'
+//    artifactId = 'error-status'
+//    publishVersion = rootProject.ext.versionName
+//    desc = 'Errors wrapper. status-handler support'
+//    website = 'https://github.com/shostko/errors'
+//}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion

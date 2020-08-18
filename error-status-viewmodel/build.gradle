@@ -1,17 +1,17 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.novoda.bintray-release'
+//apply plugin: 'com.novoda.bintray-release'
 
-publish {
-    userOrg = 'shostko'
-    repoName = 'android'
-    groupId = 'by.shostko'
-    artifactId = 'error-status-viewmodel'
-    publishVersion = rootProject.ext.versionName
-    desc = 'Errors wrapper. status-handler-viewmodel support'
-    website = 'https://github.com/shostko/errors'
-}
+//publish {
+//    userOrg = 'shostko'
+//    repoName = 'android'
+//    groupId = 'by.shostko'
+//    artifactId = 'error-status-viewmodel'
+//    publishVersion = rootProject.ext.versionName
+//    desc = 'Errors wrapper. status-handler-viewmodel support'
+//    website = 'https://github.com/shostko/errors'
+//}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -37,7 +37,7 @@ dependencies {
 
     compileOnly 'androidx.annotation:annotation:1.1.0'
     compileOnly 'androidx.recyclerview:recyclerview:1.1.0'
-    compileOnly 'io.reactivex.rxjava2:rxjava:2.2.11'
+    compileOnly 'io.reactivex.rxjava2:rxjava:2.2.19'
     compileOnly 'androidx.lifecycle:lifecycle-viewmodel:2.2.0'
 
     compileOnly 'by.shostko:status-handler:0.4.5'
