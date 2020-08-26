@@ -1,7 +1,8 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-//apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
 
 //publish {
 //    userOrg = 'shostko'
@@ -35,6 +36,45 @@ dependencies {
     compileOnly 'androidx.annotation:annotation:1.1.0'
 }
 
+bintray {
+    user = 'shostko'
+    key = 'a2945d6501aef918ff0eeb25c43595f215e7c635'
+    publications = ['errors']
+    pkg {
+        userOrg = 'shostko'
+        repo = 'android'
+        name = 'error'
+        publish = true
+        publicDownloadNumbers = true
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/shostko/errors.git'
+        dryRun = true
+        version {
+            name = rootProject.ext.versionName
+            desc = 'Errors wrapper'
+            released  = new Date()
+            vcsTag = 'v.' + rootProject.ext.versionName
+        }
+    }
+}
+
 afterEvaluate {
     generateReleaseBuildConfig.enabled = false
+
+    publishing {
+        publications {
+            errors(MavenPublication) {
+                from components.release
+                groupId = 'by.shostko'
+                artifactId = 'error'
+                version = rootProject.ext.versionName
+//                artifact("$buildDir/outputs/aar/error-release.aar")
+            }
+        }
+        repositories {
+            maven {
+                url "$buildDir/repo"
+            }
+        }
+    }
 }
