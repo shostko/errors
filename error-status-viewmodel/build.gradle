@@ -1,17 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-//apply plugin: 'com.novoda.bintray-release'
-
-//publish {
-//    userOrg = 'shostko'
-//    repoName = 'android'
-//    groupId = 'by.shostko'
-//    artifactId = 'error-status-viewmodel'
-//    publishVersion = rootProject.ext.versionName
-//    desc = 'Errors wrapper. status-handler-viewmodel support'
-//    website = 'https://github.com/shostko/errors'
-//}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -47,3 +36,31 @@ dependencies {
 afterEvaluate {
     generateReleaseBuildConfig.enabled = false
 }
+
+apply plugin: 'com.jfrog.bintray'
+
+group = "by.shostko"
+version = rootProject.ext.versionName
+
+bintray {
+    user = rootProject.ext.bintrayUser
+    key = rootProject.ext.bintrayApiKey
+    publications = ['mavenPublish']
+    configurations = ['archives']
+    pkg {
+        repo = 'android'
+        name = 'error-status-viewmodel'
+        description = "Errors wrapper. status-handler-viewmodel support"
+        publicDownloadNumbers = true
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/shostko/errors'
+        version {
+            name = rootProject.ext.versionName
+            desc = "Version ${rootProject.ext.versionName}"
+            released = new Date()
+            vcsTag = "v.${rootProject.ext.versionName}"
+        }
+    }
+}
+
+apply from: 'https://raw.githubusercontent.com/sky-uk/gradle-maven-plugin/master/gradle-mavenizer.gradle'

@@ -8,7 +8,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:4.0.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-//        classpath 'com.novoda:bintray-release:0.9.1'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
     }
 }
 
@@ -25,6 +25,18 @@ task clean(type: Delete) {
 }
 
 project.ext {
+
+    File localProps = file("local.properties");
+    if (localProps.exists()) {
+        Properties props = new Properties()
+        props.load(new FileInputStream(localProps))
+        bintrayUser = props.getProperty("bintrayUser", System.getenv("bintrayUser"))
+        bintrayApiKey = props.getProperty("bintrayApiKey", System.getenv("bintrayApiKey"))
+    } else {
+        bintrayUser = System.getenv("bintrayUser")
+        bintrayKey = System.getenv("bintrayApiKey")
+    }
+
     compileSdkVersion = 29
     minSdkVersion = 14
     targetSdkVersion = 29
