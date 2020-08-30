@@ -22,7 +22,7 @@ interface Config {
     val nullLog: String
     fun messageToLog(message: CharSequence): String
     fun messageToLog(@StringRes resId: Int): String
-    fun messageToLog(@StringRes resId: Int, args: Array<out Any>): String
+    fun messageToLog(@StringRes resId: Int, args: Array<out Any?>): String
 
     companion object {
         fun build(func: Builder.() -> Unit): Config = Builder().run {
@@ -60,7 +60,7 @@ interface Config {
 
         override fun messageToLog(resId: Int): String = context?.resources?.getResourceName(resId) ?: "unknown:res/$resId"
 
-        override fun messageToLog(resId: Int, args: Array<out Any>): String = StringBuilder().apply {
+        override fun messageToLog(resId: Int, args: Array<out Any?>): String = StringBuilder().apply {
             append(messageToLog(resId))
             append(" formatted with: ")
             args.forEachIndexed { index, arg ->
@@ -82,7 +82,7 @@ interface Config {
         private var nullLog: String? = null
         private var messageToLogFunc: ((CharSequence) -> String)? = null
         private var messageResToLogFunc: ((Int) -> String)? = null
-        private var messageResFormattedToLogFunc: ((Int, Array<out Any>) -> String)? = null
+        private var messageResFormattedToLogFunc: ((Int, Array<out Any?>) -> String)? = null
 
         fun debug(debug: Boolean): Builder = apply {
             isDebug = debug
@@ -132,7 +132,7 @@ interface Config {
             messageResToLogFunc = func
         }
 
-        fun messageResFormattedToLog(func: (Int, Array<out Any>) -> String): Builder = apply {
+        fun messageResFormattedToLog(func: (Int, Array<out Any?>) -> String): Builder = apply {
             messageResFormattedToLogFunc = func
         }
 
@@ -160,14 +160,14 @@ interface Config {
         override val nullLog: String,
         private val messageToLogFunc: ((CharSequence) -> String)?,
         private val messageResToLogFunc: ((Int) -> String)?,
-        private val messageResFormattedToLogFunc: ((Int, Array<out Any>) -> String)?
+        private val messageResFormattedToLogFunc: ((Int, Array<out Any?>) -> String)?
     ) : Config {
         override fun addErrorId(id: String, text: CharSequence) = addErrorIdFunc?.invoke(id, text) ?: Default.addErrorId(id, text)
         override fun unknownError(context: Context, cause: Throwable?) = unknownErrorFunc?.invoke(context, cause) ?: Default.unknownError(context, cause)
         override fun domainToId(domain: String) = domainToIdFunc?.invoke(domain) ?: Default.domainToId(domain)
         override fun messageToLog(message: CharSequence) = messageToLogFunc?.invoke(message) ?: Default.messageToLog(message)
         override fun messageToLog(resId: Int) = messageResToLogFunc?.invoke(resId) ?: Default.messageToLog(resId)
-        override fun messageToLog(resId: Int, args: Array<out Any>) = messageResFormattedToLogFunc?.invoke(resId, args) ?: Default.messageToLog(resId, args)
+        override fun messageToLog(resId: Int, args: Array<out Any?>) = messageResFormattedToLogFunc?.invoke(resId, args) ?: Default.messageToLog(resId, args)
         override val shouldAddErrorId: Boolean
             get() = shouldAddErrorIdFunc?.invoke() ?: Default.shouldAddErrorId
     }
