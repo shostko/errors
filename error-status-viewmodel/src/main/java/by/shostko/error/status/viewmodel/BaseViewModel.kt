@@ -21,7 +21,7 @@ open class BaseProcessingViewModel private constructor(mapper: ((Throwable) -> E
     constructor(id: String, @StringRes resId: Int) : this({ it.wrap(id, resId) })
     constructor(id: String, @StringRes resId: Int, vararg args: Any) : this({ it.wrap(id, resId, args) })
 
-    override fun requireFactory(): Status.Factory<Error> = ErrorStatusFactory { it.wrap { domain(javaClass) } }
+    override fun requireFactory(): Status.Factory<Error> = ErrorStatusFactory { it.wrap { domain(this@BaseProcessingViewModel.javaClass) } }
 }
 
 open class BaseMultiProcessingViewModel private constructor(mapper: ((Throwable) -> Error)?) : MultiProcessingViewModel<Error>(NoError, mapper?.let { ErrorStatusFactory(it) }) {
@@ -33,5 +33,5 @@ open class BaseMultiProcessingViewModel private constructor(mapper: ((Throwable)
     constructor(id: String, @StringRes resId: Int) : this({ it.wrap(id, resId) })
     constructor(id: String, @StringRes resId: Int, vararg args: Any) : this({ it.wrap(id, resId, args) })
 
-    override fun requireFactory(): Status.Factory<Error> = ErrorStatusFactory { it.wrap { domain(javaClass) } }
+    override fun requireFactory(): Status.Factory<Error> = ErrorStatusFactory { it.wrap { domain(this@BaseMultiProcessingViewModel.javaClass) } }
 }
