@@ -30,6 +30,13 @@ open class NoMessageErrorCode(
     )
 
     constructor(
+        domain: Class<*>
+    ) : this(
+        id = Error.config.domainToId(domain.simpleName),
+        domain = domain.simpleName
+    )
+
+    constructor(
         domain: String
     ) : this(
         id = Error.config.domainToId(domain),
@@ -52,6 +59,15 @@ open class SimpleErrorCode(
         message: CharSequence?
     ) : this(
         id = id,
+        domain = domain.simpleName,
+        message = message
+    )
+
+    constructor(
+        domain: Class<*>,
+        message: CharSequence?
+    ) : this(
+        id = Error.config.domainToId(domain.simpleName),
         domain = domain.simpleName,
         message = message
     )
@@ -86,6 +102,15 @@ open class ResErrorCode(
     )
 
     constructor(
+        domain: Class<*>,
+        @StringRes messageResId: Int
+    ) : this(
+        id = Error.config.domainToId(domain.simpleName),
+        domain = domain.simpleName,
+        messageResId = messageResId
+    )
+
+    constructor(
         domain: String,
         @StringRes messageResId: Int
     ) : this(
@@ -112,6 +137,17 @@ open class FormattedResErrorCode(
         vararg args: Any?
     ) : this(
         id = id,
+        domain = domain.simpleName,
+        messageResId = messageResId,
+        args = args
+    )
+
+    constructor(
+        domain: Class<*>,
+        @StringRes messageResId: Int,
+        vararg args: Any?
+    ) : this(
+        id = Error.config.domainToId(domain.simpleName),
         domain = domain.simpleName,
         messageResId = messageResId,
         args = args
