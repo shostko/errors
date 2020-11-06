@@ -3,64 +3,47 @@
 package by.shostko.errors
 
 import android.content.Context
+import androidx.annotation.StringRes
 
-internal class ErrorCodeImpl(
-    private val idProvider: () -> String,
-    private val domainProvider: () -> String,
-    private val logMessageProvider: () -> String,
-    private val messageProvider: ((Context) -> CharSequence?)?,
-    private val fallback: Boolean
-) : ErrorCode {
-    override fun message(context: Context): CharSequence? = messageProvider?.invoke(context)
-    override fun isFallback(): Boolean = fallback
-    override fun domain(): String = domainProvider.invoke()
-    override fun log(): String = logMessageProvider.invoke()
-    override fun id(): String = idProvider.invoke()
-}
-
-internal class CachedErrorCode(
-    private val idProvider: () -> String,
-    private val domainProvider: () -> String,
-    private val logMessageProvider: () -> String,
-    private val messageProvider: ((Context) -> CharSequence?)?,
-    private val fallback: Boolean
-) : ErrorCode {
-
-    private var domain: String? = null
-    private var log: String? = null
-    private var id: String? = null
-
-    override fun message(context: Context): CharSequence? = messageProvider?.invoke(context)
-    override fun isFallback(): Boolean = fallback
-    override fun domain(): String = domain ?: domainProvider.invoke().apply { domain = this }
-    override fun log(): String = log ?: logMessageProvider.invoke().apply { log = this }
-    override fun id(): String = id ?: idProvider.invoke().apply { id = this }
-}
-
-internal class StaticErrorCode(
+internal abstract class AbsErrorCode(
     private val id: String,
-    private val domain: String,
-    private val logMessage: String,
-    private val messageProvider: (Context) -> CharSequence?,
-    private val fallback: Boolean
+    private val domain: String?,
+    private val fallback: Boolean,
+    private val logMessage: String?
 ) : ErrorCode {
-    override fun message(context: Context): CharSequence? = messageProvider.invoke(context)
     override fun isFallback(): Boolean = fallback
-    override fun domain(): String = domain
-    override fun log(): String = logMessage
+    override fun domain(): String = domain ?: Error.config.defaultDomain
+    override fun log(): String = logMessage ?: Error.config.nullLog
     override fun id(): String = id
 }
 
-internal class FullyStaticErrorCode(
-    private val id: String,
-    private val domain: String,
-    private val logMessage: String,
-    private val message: CharSequence?,
-    private val fallback: Boolean
-) : ErrorCode {
+internal class BaseResErrorCode(
+    id: String,
+    domain: String?,
+    fallback: Boolean,
+    logMessage: String?,
+    @StringRes private val messageResId: Int
+) : AbsErrorCode(id, domain, fallback, logMessage) {
+    override fun message(context: Context): CharSequence? = context.getString(messageResId)
+}
+
+internal class BaseFormattedResErrorCode(
+    id: String,
+    domain: String?,
+    fallback: Boolean,
+    logMessage: String?,
+    @StringRes private val messageResId: Int,
+    private val args: Array<out Any>
+) : AbsErrorCode(id, domain, fallback, logMessage) {
+    override fun message(context: Context): CharSequence? = context.getString(messageResId, *args)
+}
+
+internal class StaticMessageErrorCode(
+    id: String,
+    domain: String?,
+    fallback: Boolean,
+    logMessage: String?,
+    private val message: CharSequence?
+) : AbsErrorCode(id, domain, fallback, logMessage) {
     override fun message(context: Context): CharSequence? = message
-    override fun isFallback(): Boolean = fallback
-    override fun domain(): String = domain
-    override fun log(): String = logMessage
-    override fun id(): String = id
 }
