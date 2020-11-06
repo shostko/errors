@@ -8,7 +8,6 @@ internal class ErrorCodeImpl(
     private val idProvider: () -> String,
     private val domainProvider: () -> String,
     private val logMessageProvider: () -> String,
-    private val extra: Any?,
     private val messageProvider: ((Context) -> CharSequence?)?,
     private val fallback: Boolean
 ) : ErrorCode {
@@ -16,17 +15,13 @@ internal class ErrorCodeImpl(
     override fun isFallback(): Boolean = fallback
     override fun domain(): String = domainProvider.invoke()
     override fun log(): String = logMessageProvider.invoke()
-    override fun id(): String {
-        val id = idProvider.invoke()
-        return if (extra == null) id else "$id$extra"
-    }
+    override fun id(): String = idProvider.invoke()
 }
 
 internal class CachedErrorCode(
     private val idProvider: () -> String,
     private val domainProvider: () -> String,
     private val logMessageProvider: () -> String,
-    private val extra: Any?,
     private val messageProvider: ((Context) -> CharSequence?)?,
     private val fallback: Boolean
 ) : ErrorCode {
@@ -39,19 +34,13 @@ internal class CachedErrorCode(
     override fun isFallback(): Boolean = fallback
     override fun domain(): String = domain ?: domainProvider.invoke().apply { domain = this }
     override fun log(): String = log ?: logMessageProvider.invoke().apply { log = this }
-    override fun id(): String = id ?: run {
-        val id = idProvider.invoke()
-        val result = if (extra == null) id else "$id$extra"
-        this.id = result
-        return result
-    }
+    override fun id(): String = id ?: idProvider.invoke().apply { id = this }
 }
 
 internal class StaticErrorCode(
     private val id: String,
     private val domain: String,
     private val logMessage: String,
-    private val extra: Any?,
     private val messageProvider: (Context) -> CharSequence?,
     private val fallback: Boolean
 ) : ErrorCode {
@@ -66,7 +55,6 @@ internal class FullyStaticErrorCode(
     private val id: String,
     private val domain: String,
     private val logMessage: String,
-    private val extra: Any?,
     private val message: CharSequence?,
     private val fallback: Boolean
 ) : ErrorCode {

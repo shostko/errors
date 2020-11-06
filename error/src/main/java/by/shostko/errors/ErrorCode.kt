@@ -19,7 +19,6 @@ interface ErrorCode {
     class Builder {
 
         private var cached: Boolean = true
-        private var extra: Any? = null
         private var fallback: Boolean = false
         private var idHolder: IdHolder? = null
         private var domainHolder: DomainHolder = DomainHolder.Default
@@ -32,12 +31,10 @@ interface ErrorCode {
 
         fun id(id: String): Builder = apply {
             this.idHolder = IdHolder.Direct(id)
-            this.extra = null
         }
 
         fun id(id: String, extra: Any?): Builder = apply {
-            this.idHolder = IdHolder.Direct(id)
-            this.extra = extra
+            this.idHolder = IdHolder.Direct(id, extra)
         }
 
         fun domain(domain: String): Builder = apply {
@@ -108,7 +105,6 @@ interface ErrorCode {
                     id = idLocal.static(),
                     domain = domainHolder.static(),
                     logMessage = logHolder.static(),
-                    extra = extra,
                     message = messageHolder.static(),
                     fallback = fallback
                 )
@@ -116,7 +112,6 @@ interface ErrorCode {
                     id = idLocal.static(),
                     domain = domainHolder.static(),
                     logMessage = logHolder.static(),
-                    extra = extra,
                     messageProvider = messageHolder.function(),
                     fallback = fallback
                 )
@@ -124,7 +119,6 @@ interface ErrorCode {
                     idProvider = idLocal.function(),
                     domainProvider = domainHolder.function(),
                     logMessageProvider = logHolder.function(),
-                    extra = extra,
                     messageProvider = messageHolder.function(),
                     fallback = fallback
                 )
@@ -132,7 +126,6 @@ interface ErrorCode {
                     idProvider = idLocal.function(),
                     domainProvider = domainHolder.function(),
                     logMessageProvider = logHolder.function(),
-                    extra = extra,
                     messageProvider = messageHolder.function(),
                     fallback = fallback
                 )
@@ -149,6 +142,8 @@ private abstract class Holder<T>(val isStatic: Boolean) {
 private sealed class IdHolder(isStatic: Boolean) : Holder<String>(isStatic) {
 
     class Direct(private val id: String) : IdHolder(true) {
+        constructor(id: String, extra: Any?) : this(if (extra == null) id else "$id$extra")
+
         override fun static(): String = id
         override fun function(): () -> String = { id }
     }
