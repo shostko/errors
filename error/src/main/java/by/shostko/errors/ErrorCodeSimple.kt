@@ -4,22 +4,36 @@ package by.shostko.errors
 
 import android.content.Context
 import androidx.annotation.StringRes
+import org.json.JSONArray
+import org.json.JSONObject
 
 sealed class BaseSimpleErrorCode(
     private val id: String,
     private val domain: String
-) : ErrorCode {
+) : ErrorCode, ErrorCode.Serializable {
     final override fun id(): String = id
     final override fun domain(): String = domain
     final override fun isFallback(): Boolean = false
 
     fun asFallback(): ErrorCode = BaseFallbackDelegate(this)
+
+    protected fun superJsonObject(): JSONObject = JSONObject()
+        .put("id", id)
+        .put("domain", domain)
 }
 
 open class NoMessageErrorCode(
     private val id: String,
     private val domain: String
 ) : BaseSimpleErrorCode(id, domain) {
+
+    companion object {
+        const val SERIALIZATION_KEY: String = "NoMessageErrorCode"
+        fun deserialize(json: JSONObject) = NoMessageErrorCode(
+            id = json.getString("id"),
+            domain = json.getString("domain")
+        )
+    }
 
     constructor(
         id: String,
@@ -43,8 +57,12 @@ open class NoMessageErrorCode(
         domain = domain
     )
 
-    override fun log(): String = Error.config.nullLog
-    override fun message(context: Context): CharSequence? = null
+    final override fun log(): String = Error.config.nullLog
+    final override fun message(context: Context): CharSequence? = null
+
+    override fun serialize(): String = superJsonObject()
+        .put(CodeSerializationKey, SERIALIZATION_KEY)
+        .toString()
 }
 
 open class SimpleErrorCode(
@@ -53,6 +71,15 @@ open class SimpleErrorCode(
     private val message: CharSequence?
 ) : BaseSimpleErrorCode(id, domain) {
 
+    companion object {
+        const val SERIALIZATION_KEY: String = "SimpleErrorCode"
+        fun deserialize(json: JSONObject) = SimpleErrorCode(
+            id = json.getString("id"),
+            domain = json.getString("domain"),
+            message = json.getStringOrNull("message")
+        )
+    }
+
     constructor(
         id: String,
         domain: Class<*>,
@@ -81,8 +108,13 @@ open class SimpleErrorCode(
         message = message
     )
 
-    override fun log(): String = message?.let { Error.config.messageToLog(it) } ?: Error.config.nullLog
-    override fun message(context: Context): CharSequence? = message
+    final override fun log(): String = message?.let { Error.config.messageToLog(it) } ?: Error.config.nullLog
+    final override fun message(context: Context): CharSequence? = message
+
+    override fun serialize(): String = superJsonObject()
+        .put("message", message?.let { JSONObject.quote(it.toString()) })
+        .put(CodeSerializationKey, SERIALIZATION_KEY)
+        .toString()
 }
 
 open class ResErrorCode(
@@ -91,6 +123,15 @@ open class ResErrorCode(
     @StringRes private val messageResId: Int
 ) : BaseSimpleErrorCode(id, domain) {
 
+    companion object {
+        const val SERIALIZATION_KEY: String = "ResErrorCode"
+        fun deserialize(json: JSONObject) = ResErrorCode(
+            id = json.getString("id"),
+            domain = json.getString("domain"),
+            messageResId = Error.config.resourceNameToId(json.getString("messageResId"))
+        )
+    }
+
     constructor(
         id: String,
         domain: Class<*>,
@@ -119,8 +160,13 @@ open class ResErrorCode(
         messageResId = messageResId
     )
 
-    override fun log(): String = Error.config.messageToLog(messageResId)
-    override fun message(context: Context): CharSequence? = context.getString(messageResId)
+    final override fun log(): String = Error.config.messageToLog(messageResId)
+    final override fun message(context: Context): CharSequence? = context.getString(messageResId)
+
+    override fun serialize(): String = superJsonObject()
+        .put("messageResId", Error.config.resourceIdToName(messageResId))
+        .put(CodeSerializationKey, SERIALIZATION_KEY)
+        .toString()
 }
 
 open class FormattedResErrorCode(
@@ -130,6 +176,16 @@ open class FormattedResErrorCode(
     private vararg val args: Any?
 ) : BaseSimpleErrorCode(id, domain) {
 
+    companion object {
+        const val SERIALIZATION_KEY: String = "FormattedResErrorCode"
+        fun deserialize(json: JSONObject) = FormattedResErrorCode(
+            id = json.getString("id"),
+            domain = json.getString("domain"),
+            messageResId = Error.config.resourceNameToId(json.getString("messageResId")),
+            args = json.getJSONArray("args").run { Array(length()) { get(it) } }
+        )
+    }
+
     constructor(
         id: String,
         domain: Class<*>,
@@ -164,12 +220,30 @@ open class FormattedResErrorCode(
         args = args
     )
 
-    override fun log(): String = Error.config.messageToLog(messageResId, args)
-    override fun message(context: Context): CharSequence? = context.getString(messageResId, *args)
+    final override fun log(): String = Error.config.messageToLog(messageResId, args)
+    final override fun message(context: Context): CharSequence? = context.getString(messageResId, *args)
+
+    override fun serialize(): String = superJsonObject()
+        .put("messageResId", Error.config.resourceIdToName(messageResId))
+        .put("args", JSONArray().apply { args.forEach { put(it) } })
+        .put(CodeSerializationKey, SERIALIZATION_KEY)
+        .toString()
 }
 
-private class BaseFallbackDelegate(
-    code: ErrorCode
-) : ErrorCode by code {
+internal class BaseFallbackDelegate(
+    private val code: ErrorCode
+) : ErrorCode by code, ErrorCode.Serializable {
+
+    companion object {
+        const val SERIALIZATION_KEY: String = "BaseFallbackDelegate"
+        fun deserialize(json: JSONObject) = BaseFallbackDelegate(
+            ErrorCode.deserialize(json.getString("wrapped"))
+        )
+    }
+
     override fun isFallback(): Boolean = true
+    override fun serialize(): String = JSONObject()
+        .put("wrapped", ErrorCode.serialize(code))
+        .put(CodeSerializationKey, SERIALIZATION_KEY)
+        .toString()
 }

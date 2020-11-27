@@ -10,6 +10,7 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.StyleSpan
 import androidx.annotation.StringRes
+import org.json.JSONObject
 
 interface Config {
     val isDebug: Boolean
@@ -23,6 +24,13 @@ interface Config {
     fun messageToLog(message: CharSequence): String
     fun messageToLog(@StringRes resId: Int): String
     fun messageToLog(@StringRes resId: Int, args: Array<out Any?>): String
+
+    fun resourceIdToName(@StringRes resId: Int): String
+    @StringRes
+    fun resourceNameToId(resName: String): Int
+
+    fun serialize(code: ErrorCode): String
+    fun deserialize(str: String): ErrorCode?
 
     companion object {
         fun build(func: Builder.() -> Unit): Config = Builder().run {
@@ -70,6 +78,33 @@ interface Config {
                 append(arg)
             }
         }.toString()
+
+        override fun resourceIdToName(resId: Int): String = context?.resources?.getResourceName(resId) ?: resId.toString()
+        override fun resourceNameToId(resName: String): Int {
+            val result = if (context == null) {
+                0
+            } else {
+                try {
+                    val resPackage = resName.substringBefore(':')
+                    val resType = resName.substringAfter(':').substringBefore('/')
+                    val resEntry = resName.substringAfter('/')
+                    context.resources.getIdentifier(resEntry, resType, resPackage)
+                } catch (th: Throwable) {
+                    0
+                }
+            }
+            return if (result == 0) resName.toIntOrNull() ?: 0 else result
+        }
+
+        override fun serialize(code: ErrorCode): String = JSONObject()
+            .put("id", code.id())
+            .put("domain", code.domain())
+            .put("log", code.log())
+            .put("fallback", code.isFallback())
+            .put(CodeSerializationKey, code::class.java.name)
+            .toString()
+
+        override fun deserialize(str: String): ErrorCode? = null
     }
 
     class Builder {
@@ -83,6 +118,10 @@ interface Config {
         private var messageToLogFunc: ((CharSequence) -> String)? = null
         private var messageResToLogFunc: ((Int) -> String)? = null
         private var messageResFormattedToLogFunc: ((Int, Array<out Any?>) -> String)? = null
+        private var resourceIdToNameFunc: ((Int) -> String)? = null
+        private var resourceNameToIdFunc: ((String) -> Int)? = null
+        private var serializeFunc: ((ErrorCode) -> String)? = null
+        private var deserializeFunc: ((String) -> ErrorCode?)? = null
 
         fun debug(debug: Boolean): Builder = apply {
             isDebug = debug
@@ -136,6 +175,22 @@ interface Config {
             messageResFormattedToLogFunc = func
         }
 
+        fun resourceIdToName(func: (Int) -> String): Builder = apply {
+            resourceIdToNameFunc = func
+        }
+
+        fun resourceNameToId(func: (String) -> Int): Builder = apply {
+            resourceNameToIdFunc = func
+        }
+
+        fun serialize(func: (ErrorCode) -> String): Builder = apply {
+            serializeFunc = func
+        }
+
+        fun deserialize(func: (String) -> ErrorCode?): Builder = apply {
+            deserializeFunc = func
+        }
+
         fun build(): Config = ConfigImpl(
             isDebug = isDebug ?: false,
             shouldAddErrorIdFunc = shouldAddErrorId,
@@ -146,7 +201,11 @@ interface Config {
             nullLog = nullLog ?: Default.nullLog,
             messageToLogFunc = messageToLogFunc,
             messageResToLogFunc = messageResToLogFunc,
-            messageResFormattedToLogFunc = messageResFormattedToLogFunc
+            messageResFormattedToLogFunc = messageResFormattedToLogFunc,
+            resourceIdToNameFunc = resourceIdToNameFunc,
+            resourceNameToIdFunc = resourceNameToIdFunc,
+            serializeFunc = serializeFunc,
+            deserializeFunc = deserializeFunc
         )
     }
 
@@ -160,7 +219,11 @@ interface Config {
         override val nullLog: String,
         private val messageToLogFunc: ((CharSequence) -> String)?,
         private val messageResToLogFunc: ((Int) -> String)?,
-        private val messageResFormattedToLogFunc: ((Int, Array<out Any?>) -> String)?
+        private val messageResFormattedToLogFunc: ((Int, Array<out Any?>) -> String)?,
+        private val resourceIdToNameFunc: ((Int) -> String)?,
+        private val resourceNameToIdFunc: ((String) -> Int)?,
+        private val serializeFunc: ((ErrorCode) -> String)?,
+        private val deserializeFunc: ((String) -> ErrorCode?)?
     ) : Config {
         override fun addErrorId(id: String, text: CharSequence) = addErrorIdFunc?.invoke(id, text) ?: Default.addErrorId(id, text)
         override fun unknownError(context: Context, cause: Throwable?) = unknownErrorFunc?.invoke(context, cause) ?: Default.unknownError(context, cause)
@@ -168,6 +231,10 @@ interface Config {
         override fun messageToLog(message: CharSequence) = messageToLogFunc?.invoke(message) ?: Default.messageToLog(message)
         override fun messageToLog(resId: Int) = messageResToLogFunc?.invoke(resId) ?: Default.messageToLog(resId)
         override fun messageToLog(resId: Int, args: Array<out Any?>) = messageResFormattedToLogFunc?.invoke(resId, args) ?: Default.messageToLog(resId, args)
+        override fun resourceIdToName(resId: Int): String = resourceIdToNameFunc?.invoke(resId) ?: Default.resourceIdToName(resId)
+        override fun resourceNameToId(resName: String): Int = resourceNameToIdFunc?.invoke(resName) ?: Default.resourceNameToId(resName)
+        override fun serialize(code: ErrorCode): String = serializeFunc?.invoke(code) ?: Default.serialize(code)
+        override fun deserialize(str: String): ErrorCode? = deserializeFunc?.invoke(str) ?: Default.deserialize(str)
         override val shouldAddErrorId: Boolean
             get() = shouldAddErrorIdFunc?.invoke() ?: Default.shouldAddErrorId
     }

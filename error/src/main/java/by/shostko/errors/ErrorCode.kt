@@ -14,6 +14,12 @@ interface ErrorCode {
 
     companion object {
         fun build(block: Builder.() -> Unit): ErrorCode = Builder().apply(block).build()
+        fun serialize(code: ErrorCode): String = serializeErrorCode(code)
+        fun deserialize(str: String): ErrorCode = deserializeErrorCode(str)
+    }
+
+    interface Serializable {
+        fun serialize(): String
     }
 
     @Suppress("unused")

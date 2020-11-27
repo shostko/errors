@@ -139,11 +139,12 @@ object UnknownError : Error(NoMessageErrorCode("UE", "UnknownError"), null) {
 
 private fun Throwable.id(): String = if (this is Error) id() else Error.config.domainToId(javaClass.simpleName)
 private fun Error.asString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
-private fun Throwable.asString(): String =
-    if (this is Error) {
-        this.asString()
-    } else {
+private fun Throwable.asString(): String = when (this) {
+    is Error -> this.asString()
+    is ReplicaThrowable -> this.toString()
+    else -> {
         val domain = javaClass.simpleName
         val id = Error.config.domainToId(domain)
-        "$domain($id; ${message})"
+        "$domain($id; $message)"
     }
+}
