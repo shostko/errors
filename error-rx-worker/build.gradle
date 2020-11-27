@@ -1,0 +1,61 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    compileOnly project(':error')
+
+    compileOnly 'androidx.annotation:annotation:1.1.0'
+    compileOnly 'io.reactivex.rxjava2:rxjava:2.2.19'
+    compileOnly 'android.arch.work:work-runtime-ktx:1.0.1'
+    compileOnly 'android.arch.work:work-rxjava2:1.0.1'
+}
+
+afterEvaluate {
+    generateReleaseBuildConfig.enabled = false
+}
+
+apply plugin: 'com.jfrog.bintray'
+
+group = "by.shostko"
+version = rootProject.ext.versionName
+
+bintray {
+    user = rootProject.ext.bintrayUser
+    key = rootProject.ext.bintrayApiKey
+    publications = ['mavenPublish']
+    configurations = ['archives']
+    pkg {
+        repo = 'android'
+        name = 'error-rx-worker'
+        description = "Errors wrapper. rx-worker support"
+        publicDownloadNumbers = true
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/shostko/errors'
+        version {
+            name = rootProject.ext.versionName
+            desc = "Version ${rootProject.ext.versionName}"
+            released = new Date()
+            vcsTag = "v.${rootProject.ext.versionName}"
+        }
+    }
+}
+
+apply from: 'https://raw.githubusercontent.com/sky-uk/gradle-maven-plugin/master/gradle-mavenizer.gradle'
