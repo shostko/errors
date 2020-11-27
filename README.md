@@ -1,6 +1,7 @@
 # Errors
 
 [ ![Download](https://api.bintray.com/packages/shostko/android/error/images/download.svg) ](https://bintray.com/shostko/android/error/_latestVersion)
+
 Wraps and helps working with exceptions and errors
 
 ## Integration
@@ -20,10 +21,11 @@ dependencies {
 }
 ```
 
-For additional support of RxJava and StatusHandler add any of these:
+For additional support of RxJava, Worker and StatusHandler add any of these:
 ```gradle
 dependencies {
     implementation 'by.shostko:error-rx:0.+'
+    implementation 'by.shostko:error-rx-worker:0.+'
     implementation 'by.shostko:error-status:0.+'
     implementation 'by.shostko:error-status-viewmodel:0.+'
 }
@@ -34,6 +36,10 @@ Also don't forget to additional mandatory dependencies:
 dependencies {
     // for rx module
     implementation 'io.reactivex.rxjava2:rxjava:2.+' 
+
+    // for rx-worker module
+    implementation 'android.arch.work:work-runtime-ktx:1.+'
+    implementation 'android.arch.work:work-rxjava2:1.+'
     
     // for status module
     implementation 'by.shostko:status-handler:0.+'
