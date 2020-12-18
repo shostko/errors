@@ -9,17 +9,19 @@ import org.json.JSONObject
 internal const val CodeSerializationKey: String = "by.shostko.ErrorCode.key"
 internal const val ErrorMapKey: String = "by.shostko.Error.key"
 
-internal fun serializeErrorCode(code: ErrorCode): String = if (code is ErrorCode.Serializable) {
-    code.serialize()
-} else try {
-    Error.config.serialize(code)
-} catch (th: Throwable) {
-    throw RuntimeException("Error while using custom serializer for: $code", th)
-}
+internal fun serializeErrorCode(code: ErrorCode): String =
+    if (code is ErrorCode.Serializable && (code !is InternalErrorCode || code.canBeSerialized)) {
+        code.serialize()
+    } else try {
+        Error.config.serialize(code)
+    } catch (th: Throwable) {
+        throw RuntimeException("Error while using custom serializer for: $code", th)
+    }
 
 internal fun deserializeErrorCode(str: String): ErrorCode = try {
     val json = JSONObject(str)
     when (json.getStringOrNull(CodeSerializationKey)) {
+        InternalErrorCode.SERIALIZATION_KEY -> InternalErrorCode.deserialize(json)
         SimpleErrorCode.SERIALIZATION_KEY -> SimpleErrorCode.deserialize(json)
         ResErrorCode.SERIALIZATION_KEY -> ResErrorCode.deserialize(json)
         FormattedResErrorCode.SERIALIZATION_KEY -> FormattedResErrorCode.deserialize(json)
