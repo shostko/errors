@@ -75,7 +75,10 @@ interface MessageProvider {
 
         internal val MessageProvider.canBeSerialized: Boolean
             get() = when (this) {
-                Empty, is Direct, is FromRes, is FromFormattedRes -> true
+                Empty,
+                is Direct,
+                is FromRes, is FromFormattedRes,
+                is MessageWithLogProvider, is MessageWithoutLogProvider -> true
                 else -> false
             }
     }
