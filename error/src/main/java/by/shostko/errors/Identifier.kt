@@ -36,6 +36,8 @@ interface Identifier {
             full = full
         )
 
+        constructor(domain: Class<*>) : this(domain.toDomain())
+
         override fun short(): String = short
         override fun full(): String = full
     }
