@@ -2,13 +2,13 @@ package by.shostko.errors
 
 import androidx.annotation.StringRes
 
-interface EnumErrorCode : ErrorCode, ErrorCodeIdentifier.Abs {
+interface EnumErrorCode : ErrorCode, Identifier.Abs {
 
     val ordinal: Int
     val name: String
 
     override val domain: String
-        get() = this::class.java.simpleName
+        get() = this.toDomain()
 
     override val index: Int
         get() = ordinal
@@ -16,14 +16,11 @@ interface EnumErrorCode : ErrorCode, ErrorCodeIdentifier.Abs {
     override val description: String
         get() = name
 
-    override fun id(): String = short()
-
-    override fun domain(): String = full()
-
+    override fun id(): Identifier = this
     override fun isFallback(): Boolean = false
 }
 
-fun <E : Enum<E>> E.asErrorCodeIdentifier(): ErrorCodeIdentifier = ErrorCodeIdentifier.Impl(this, ordinal, name)
+fun <E : Enum<E>> E.asErrorCodeIdentifier(): Identifier = Identifier.Impl(this, ordinal, name)
 
 @Suppress("unused")
 enum class TemplateErrorCode(messageProvider: MessageProvider) : EnumErrorCode, MessageProvider by messageProvider {

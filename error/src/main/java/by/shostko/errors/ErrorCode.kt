@@ -6,8 +6,7 @@ import android.content.Context
 import androidx.annotation.StringRes
 
 interface ErrorCode {
-    fun id(): String
-    fun domain(): String
+    fun id(): Identifier
     fun log(): String
     fun isFallback(): Boolean
     fun message(context: Context): CharSequence?
@@ -25,32 +24,42 @@ interface ErrorCode {
     @Suppress("unused")
     class Builder {
 
-        private var id: String? = null
-        private var domain: String? = null
+        private var id: Identifier? = null
         private var fallback: Boolean = false
         private var log: String? = null
-        private var messageHolder: MessageHolder = MessageHolder.Null
+        private var noLog: Boolean = false
+        private var message: MessageProvider = MessageProvider.Empty
 
-        fun id(id: String): Builder = apply {
+        fun id(id: Identifier): Builder = apply {
             this.id = id
         }
 
-        fun id(id: String, extra: Any?): Builder = apply {
-            this.id = if (extra == null) id else "$id$extra"
+        fun id(short: String, full: String): Builder = apply {
+            this.id = Identifier.Simple(short, full)
         }
 
-        fun domain(domain: String): Builder = apply {
-            this.domain = domain
-            if (id == null) {
-                id = Error.config.domainToId(domain)
-            }
+        fun id(full: String): Builder = apply {
+            this.id = Identifier.Simple(full)
         }
 
-        fun domain(clazz: Class<*>): Builder = apply {
-            this.domain = clazz.simpleName
-            if (id == null) {
-                id = Error.config.domainToId(clazz.simpleName)
-            }
+        fun id(domain: Class<*>): Builder = apply {
+            this.id = Identifier.Simple(domain.toDomain())
+        }
+
+        fun id(domain: Any): Builder = apply {
+            this.id = Identifier.Simple(domain.toDomain())
+        }
+
+        fun id(domain: String, index: Int, description: String): Builder = apply {
+            this.id = Identifier.Impl(domain, index, description)
+        }
+
+        fun id(domain: Class<*>, index: Int, description: String): Builder = apply {
+            this.id = Identifier.Impl(domain, index, description)
+        }
+
+        fun id(domain: Any, index: Int, description: String): Builder = apply {
+            this.id = Identifier.Impl(domain, index, description)
         }
 
         fun fallback(fallback: Boolean = true): Builder = apply {
@@ -62,71 +71,42 @@ interface ErrorCode {
         }
 
         fun noLog(): Builder = apply {
-            this.log = null
+            this.noLog = true
+        }
+
+        fun message(message: MessageProvider): Builder = apply {
+            this.message = message
         }
 
         fun message(message: CharSequence?): Builder = apply {
-            messageHolder = message?.let { MessageHolder.Direct(it) } ?: MessageHolder.Null
-            if (log == null && message != null) {
-                log = Error.config.messageToLog(message)
-            }
+            this.message = MessageProvider.Direct(message)
         }
 
         fun message(@StringRes messageResId: Int): Builder = apply {
-            messageHolder = MessageHolder.FromRes(messageResId)
-            if (log == null) {
-                log = Error.config.messageToLog(messageResId)
-            }
+            message = MessageProvider.FromRes(messageResId)
         }
 
         fun message(@StringRes messageResId: Int, vararg args: Any): Builder = apply {
-            messageHolder = MessageHolder.FromFormattedRes(messageResId, args)
-            if (log == null) {
-                log = Error.config.messageToLog(messageResId, args)
-            }
+            message = MessageProvider.FromFormattedRes(messageResId, args)
         }
 
         fun build(): ErrorCode {
             val idLocal = id
-            requireNotNull(idLocal) { "Id or Domain is required to build ErrorCode" }
-            return when (val messageLocal = messageHolder) {
-                MessageHolder.Null -> StaticMessageErrorCode(
-                    id = idLocal,
-                    domain = domain,
-                    logMessage = log,
-                    message = null,
-                    fallback = fallback
-                )
-                is MessageHolder.Direct -> StaticMessageErrorCode(
-                    id = idLocal,
-                    domain = domain,
-                    logMessage = log,
-                    message = messageLocal.message,
-                    fallback = fallback
-                )
-                is MessageHolder.FromRes -> BaseResErrorCode(
-                    id = idLocal,
-                    domain = domain,
-                    logMessage = log,
-                    messageResId = messageLocal.messageResId,
-                    fallback = fallback
-                )
-                is MessageHolder.FromFormattedRes -> BaseFormattedResErrorCode(
-                    id = idLocal,
-                    domain = domain,
-                    logMessage = log,
-                    messageResId = messageLocal.messageResId,
-                    args = messageLocal.args,
-                    fallback = fallback
-                )
-            }
+            requireNotNull(idLocal) { "Identifier is required to build ErrorCode" }
+            return InternalErrorCode(
+                identifier = idLocal,
+                provider = if (noLog) {
+                    message.noLog()
+                } else {
+                    val logLocal = log
+                    if (logLocal.isNullOrBlank()) {
+                        message
+                    } else {
+                        message.withLog(logLocal)
+                    }
+                },
+                fallback = fallback
+            )
         }
     }
-}
-
-private sealed class MessageHolder {
-    object Null : MessageHolder()
-    class Direct(val message: CharSequence) : MessageHolder()
-    class FromRes(@StringRes val messageResId: Int) : MessageHolder()
-    class FromFormattedRes(@StringRes val messageResId: Int, val args: Array<out Any>) : MessageHolder()
 }

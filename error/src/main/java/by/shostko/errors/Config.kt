@@ -10,16 +10,17 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.StyleSpan
 import androidx.annotation.StringRes
+import by.shostko.errors.Identifier.Companion.put
 import org.json.JSONObject
 
 interface Config {
     val isDebug: Boolean
     val shouldAddErrorId: Boolean
-    fun addErrorId(id: String, text: CharSequence): CharSequence
+    fun addErrorId(error: Error, text: CharSequence): CharSequence
     fun unknownError(context: Context, cause: Throwable?): String
 
+    fun prettifyDomain(domain: String): String
     fun domainToId(domain: String): String
-    val defaultDomain: String
     val nullLog: String
     fun messageToLog(message: CharSequence): String
     fun messageToLog(@StringRes resId: Int): String
@@ -44,7 +45,6 @@ interface Config {
     open class Base(
         private val context: Context? = null,
         override val isDebug: Boolean = false,
-        override val defaultDomain: String = "Error",
         override val nullLog: String = "null"
     ) : Config {
 
@@ -53,7 +53,7 @@ interface Config {
         override val shouldAddErrorId: Boolean
             get() = false
 
-        override fun addErrorId(id: String, text: CharSequence) = SpannableStringBuilder(id).apply {
+        override fun addErrorId(error: Error, text: CharSequence) = SpannableStringBuilder(error.short()).apply {
             append(":\n")
             val end = length
             append(text)
@@ -62,7 +62,9 @@ interface Config {
 
         override fun unknownError(context: Context, cause: Throwable?): String = context.getString(R.string.by_shostko_error_unknown)
 
-        override fun domainToId(domain: String): String = domain.removeSuffix("ErrorCode").filter { it.isUpperCase() }
+        override fun prettifyDomain(domain: String): String = domain.removeSuffix("ErrorCode")
+
+        override fun domainToId(domain: String): String = prettifyDomain(domain).filter { it.isUpperCase() }
 
         override fun messageToLog(message: CharSequence): String = message.toString()
 
@@ -97,8 +99,7 @@ interface Config {
         }
 
         override fun serialize(code: ErrorCode): String = JSONObject()
-            .put("id", code.id())
-            .put("domain", code.domain())
+            .put(code.id())
             .put("log", code.log())
             .put("fallback", code.isFallback())
             .put(CodeSerializationKey, code::class.java.name)
@@ -110,8 +111,9 @@ interface Config {
     class Builder {
         private var isDebug: Boolean? = null
         private var shouldAddErrorId: (() -> Boolean)? = null
-        private var addErrorIdFunc: ((String, CharSequence) -> CharSequence)? = null
+        private var addErrorIdFunc: ((Error, CharSequence) -> CharSequence)? = null
         private var unknownErrorFunc: ((Context, Throwable?) -> String)? = null
+        private var prettifyDomainFunc: ((String) -> String)? = null
         private var domainToIdFunc: ((String) -> String)? = null
         private var defaultDomain: String? = null
         private var nullLog: String? = null
@@ -139,7 +141,7 @@ interface Config {
             shouldAddErrorId = { preferences.getBoolean(key, false) }
         }
 
-        fun addErrorId(func: (String, CharSequence) -> CharSequence): Builder = apply {
+        fun addErrorId(func: (Error, CharSequence) -> CharSequence): Builder = apply {
             addErrorIdFunc = func
         }
 
@@ -149,6 +151,10 @@ interface Config {
 
         fun unknownError(func: (Context, Throwable?) -> String): Builder = apply {
             unknownErrorFunc = func
+        }
+
+        fun prettifyDomain(func: (String) -> String): Builder = apply {
+            prettifyDomainFunc = func
         }
 
         fun domainToId(func: (String) -> String): Builder = apply {
@@ -196,8 +202,8 @@ interface Config {
             shouldAddErrorIdFunc = shouldAddErrorId,
             addErrorIdFunc = addErrorIdFunc,
             unknownErrorFunc = unknownErrorFunc,
+            prettifyDomainFunc = prettifyDomainFunc,
             domainToIdFunc = domainToIdFunc,
-            defaultDomain = defaultDomain ?: Default.defaultDomain,
             nullLog = nullLog ?: Default.nullLog,
             messageToLogFunc = messageToLogFunc,
             messageResToLogFunc = messageResToLogFunc,
@@ -212,10 +218,10 @@ interface Config {
     private class ConfigImpl(
         override val isDebug: Boolean,
         private val shouldAddErrorIdFunc: (() -> Boolean)?,
-        private val addErrorIdFunc: ((String, CharSequence) -> CharSequence)?,
+        private val addErrorIdFunc: ((Error, CharSequence) -> CharSequence)?,
         private val unknownErrorFunc: ((Context, Throwable?) -> String)?,
+        private val prettifyDomainFunc: ((String) -> String)?,
         private val domainToIdFunc: ((String) -> String)?,
-        override val defaultDomain: String,
         override val nullLog: String,
         private val messageToLogFunc: ((CharSequence) -> String)?,
         private val messageResToLogFunc: ((Int) -> String)?,
@@ -225,8 +231,9 @@ interface Config {
         private val serializeFunc: ((ErrorCode) -> String)?,
         private val deserializeFunc: ((String) -> ErrorCode?)?
     ) : Config {
-        override fun addErrorId(id: String, text: CharSequence) = addErrorIdFunc?.invoke(id, text) ?: Default.addErrorId(id, text)
+        override fun addErrorId(error: Error, text: CharSequence) = addErrorIdFunc?.invoke(error, text) ?: Default.addErrorId(error, text)
         override fun unknownError(context: Context, cause: Throwable?) = unknownErrorFunc?.invoke(context, cause) ?: Default.unknownError(context, cause)
+        override fun prettifyDomain(domain: String): String = prettifyDomainFunc?.invoke(domain) ?: Default.prettifyDomain(domain)
         override fun domainToId(domain: String) = domainToIdFunc?.invoke(domain) ?: Default.domainToId(domain)
         override fun messageToLog(message: CharSequence) = messageToLogFunc?.invoke(message) ?: Default.messageToLog(message)
         override fun messageToLog(resId: Int) = messageResToLogFunc?.invoke(resId) ?: Default.messageToLog(resId)
@@ -239,3 +246,13 @@ interface Config {
             get() = shouldAddErrorIdFunc?.invoke() ?: Default.shouldAddErrorId
     }
 }
+
+internal fun Any.toDomain(): String = Error.config.prettifyDomain(this::class.java.simpleName)
+internal fun Class<*>.toDomain(): String = Error.config.prettifyDomain(this.simpleName)
+internal fun String.prettifyDomain(): String = Error.config.prettifyDomain(this)
+internal fun String.domainToId(): String = Error.config.domainToId(this)
+internal fun Int.toResourceName(): String = Error.config.resourceIdToName(this)
+internal fun String.toResourceId(): Int = Error.config.resourceNameToId(this)
+internal fun CharSequence?.messageToLog(): String = this?.let { Error.config.messageToLog(it) } ?: Error.config.nullLog
+internal fun Int.messageToLog(): String = Error.config.messageToLog(this)
+internal fun Int.messageToLog(args: Array<out Any?>): String = Error.config.messageToLog(this, args)
