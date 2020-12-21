@@ -39,10 +39,10 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         var tmp: Throwable? = this@Error
         while (tmp is Error) {
             append(tmp.code.id().short())
-            if (length > 0) {
+            tmp = if (tmp is Materialized || tmp is Unexpected) null else tmp.cause
+            if (length > 0 && tmp != null) {
                 append('-')
             }
-            tmp = if (tmp is Materialized || tmp is Unexpected) null else tmp.cause
         }
         if (tmp != null) {
             append(config.domainToId(tmp::class.java.simpleName))
@@ -53,10 +53,10 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         var tmp: Throwable? = this@Error
         while (tmp is Error) {
             append(tmp.code.id().full())
-            if (length > 0) {
+            tmp = if (tmp is Materialized || tmp is Unexpected) null else tmp.cause
+            if (length > 0 && tmp != null) {
                 append(" - ")
             }
-            tmp = if (tmp is Materialized || tmp is Unexpected) null else tmp.cause
         }
         if (tmp != null) {
             append(tmp::class.java.simpleName)
