@@ -19,35 +19,63 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         fun materialize(throwable: Throwable): Error = throwable as? Error ?: Materialized(throwable)
         fun wrap(throwable: Throwable, code: ErrorCode): Error = Child(code, throwable)
         fun wrap(throwable: Throwable, builder: ErrorCode.Builder.() -> Unit): Error = Child(ErrorCode.build(builder), throwable)
-        fun wrap(throwable: Throwable, id: String): Error = Child(NoMessageErrorCode(id, config.defaultDomain), throwable)
-        fun wrap(throwable: Throwable, id: String, message: String?): Error = Child(SimpleErrorCode(id, config.defaultDomain, message), throwable)
-        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int): Error = Child(ResErrorCode(id, config.defaultDomain, resId), throwable)
-        fun wrap(throwable: Throwable, id: String, @StringRes resId: Int, vararg args: Any): Error = Child(FormattedResErrorCode(id, config.defaultDomain, resId, *args), throwable)
+        fun wrap(throwable: Throwable, id: Identifier): Error = Child(NoMessageErrorCode(id), throwable)
+        fun wrap(throwable: Throwable, id: Identifier, message: MessageProvider): Error = Child(InternalErrorCode(id, message), throwable)
+        fun wrap(throwable: Throwable, id: Identifier, message: String?): Error = Child(SimpleErrorCode(id, message), throwable)
+        fun wrap(throwable: Throwable, id: Identifier, @StringRes resId: Int): Error = Child(ResErrorCode(id, resId), throwable)
+        fun wrap(throwable: Throwable, id: Identifier, @StringRes resId: Int, vararg args: Any): Error = Child(FormattedResErrorCode(id, resId, args), throwable)
         fun custom(code: ErrorCode): Error = Custom(code)
         fun custom(builder: ErrorCode.Builder.() -> Unit): Error = Custom(ErrorCode.build(builder))
-        fun custom(id: String): Error = Custom(NoMessageErrorCode(id, config.defaultDomain))
-        fun custom(id: String, message: String?): Error = Custom(SimpleErrorCode(id, config.defaultDomain, message))
-        fun custom(id: String, @StringRes resId: Int): Error = Custom(ResErrorCode(id, config.defaultDomain, resId))
-        fun custom(id: String, @StringRes resId: Int, vararg args: Any): Error = Custom(FormattedResErrorCode(id, config.defaultDomain, resId, *args))
+        fun custom(id: Identifier): Error = Custom(NoMessageErrorCode(id))
+        fun custom(id: Identifier, message: MessageProvider): Error = Custom(InternalErrorCode(id, message))
+        fun custom(id: Identifier, message: String?): Error = Custom(SimpleErrorCode(id, message))
+        fun custom(id: Identifier, @StringRes resId: Int): Error = Custom(ResErrorCode(id, resId))
+        fun custom(id: Identifier, @StringRes resId: Int, vararg args: Any): Error = Custom(FormattedResErrorCode(id, resId, args))
     }
 
-    open fun id(): String = code.id()
+    fun short(): String = StringBuilder().apply {
+        var tmp: Throwable? = this@Error
+        while (tmp is Error) {
+            append(tmp.code.id().short())
+            if (length > 0) {
+                append('-')
+            }
+            tmp = if (tmp is Materialized || tmp is Unexpected) null else tmp.cause
+        }
+        if (tmp != null) {
+            append(config.domainToId(tmp::class.java.simpleName))
+        }
+    }.toString()
+
+    fun full(): String = StringBuilder().apply {
+        var tmp: Throwable? = this@Error
+        while (tmp is Error) {
+            append(tmp.code.id().full())
+            if (length > 0) {
+                append(" - ")
+            }
+            tmp = if (tmp is Materialized || tmp is Unexpected) null else tmp.cause
+        }
+        if (tmp != null) {
+            append(tmp::class.java.simpleName)
+        }
+    }.toString()
+
+    fun stack(): String = StringBuilder().apply {
+        append(this@Error.toString())
+        var tmp: Throwable? = cause
+        while (tmp != null) {
+            append('\n')
+            append(tmp.asString())
+            tmp = tmp.cause
+        }
+    }.toString()
 
     fun original(): Throwable = when (val cause = cause) {
         null -> this
         is Error -> cause.original()
         else -> cause
     }
-
-    fun stack(): String? = StringBuilder().apply {
-        append(this@Error.toString())
-        var tmp: Throwable? = cause
-        while (tmp != null) {
-            append(" => ")
-            append(tmp.asString())
-            tmp = tmp.cause
-        }
-    }.toString()
 
     open fun text(context: Context): CharSequence {
         var (message, _) = message(context)
@@ -57,12 +85,12 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         if (message.isNullOrBlank()) {
             message = config.unknownError(context, cause)
         }
-        return if (config.shouldAddErrorId) config.addErrorId(id(), message) else message
+        return if (config.shouldAddErrorId) config.addErrorId(this, message) else message
     }
 
     internal open fun message(context: Context): Pair<CharSequence?, Boolean> = code.message(context) to code.isFallback()
 
-    override fun toString(): String = asString()
+    override fun toString(): String = "${code.id().full()}(${code.log()})"
 
     inline fun <reified T> hasCause(): Boolean = hasCause { this is T }
 
@@ -81,7 +109,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
 
     fun hasCode(code: ErrorCode): Boolean = hasCode { this == code }
 
-    fun hasCode(id: String): Boolean = hasCode { this.id() == id }
+    fun hasCode(id: Identifier): Boolean = hasCode { this.id() == id }
 
     fun hasCode(predicate: ErrorCode.() -> Boolean): Boolean {
         var tmp: Error? = this
@@ -94,22 +122,16 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         return false
     }
 
-    private class Materialized(domain: String, cause: Throwable) : Error(SimpleErrorCode(config.domainToId(domain), domain, cause.localizedMessage), cause) {
-        constructor(cause: Throwable) : this(cause.javaClass.simpleName, cause)
-    }
+    private class Materialized(cause: Throwable) : Error(SimpleErrorCode(cause::class.java, cause.localizedMessage), cause)
 
-    class Unexpected(domain: String, override val cause: Throwable) : Error(NoMessageErrorCode(config.domainToId(domain), domain), cause) {
-        constructor(cause: Throwable) : this(cause.javaClass.simpleName, cause)
-    }
+    class Unexpected(cause: Throwable) : Error(NoMessageErrorCode(cause::class.java), cause)
 
     open class Custom(code: ErrorCode) : Error(code, null) {
-        final override fun id(): String = super.id()
         final override fun text(context: Context): CharSequence = super.text(context)
         final override fun toString(): String = super.toString()
     }
 
     class Child(code: ErrorCode, override val cause: Throwable) : Error(code, cause) {
-        override fun id(): String = "${super.id()}-${cause.id()}"
         override fun message(context: Context): Pair<CharSequence?, Boolean> =
             if (cause is Error) {
                 val parent = cause.message(context)
@@ -137,14 +159,8 @@ object UnknownError : Error(NoMessageErrorCode("UE", "UnknownError"), null) {
     override fun toString(): String = "UnknownError"
 }
 
-private fun Throwable.id(): String = if (this is Error) id() else Error.config.domainToId(javaClass.simpleName)
-private fun Error.asString(): String = "${code.domain()}(${code.id()}; ${code.log()})"
 private fun Throwable.asString(): String = when (this) {
-    is Error -> this.asString()
+    is Error -> this.toString()
     is ReplicaThrowable -> this.toString()
-    else -> {
-        val domain = javaClass.simpleName
-        val id = Error.config.domainToId(domain)
-        "$domain($id; $message)"
-    }
+    else -> "${javaClass.simpleName}($message)"
 }

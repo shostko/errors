@@ -9,36 +9,44 @@ import org.json.JSONObject
 internal const val CodeSerializationKey: String = "by.shostko.ErrorCode.key"
 internal const val ErrorMapKey: String = "by.shostko.Error.key"
 
-internal fun serializeErrorCode(code: ErrorCode): String = if (code is ErrorCode.Serializable) {
-    code.serialize()
-} else try {
-    Error.config.serialize(code)
-} catch (th: Throwable) {
-    throw RuntimeException("Error while using custom serializer for: $code", th)
+internal fun serializeErrorCode(code: ErrorCode): String =
+    if (code is ErrorCode.Serializable && (code !is InternalErrorCode || code.canBeSerialized)) {
+        code.serialize()
+    } else try {
+        Error.config.serialize(code)
+    } catch (th: Throwable) {
+        throw RuntimeException("Error while using custom serializer for: $code", th)
+    }
+
+internal fun deserializeErrorCode(str: String): ErrorCode {
+    val json = str.toJsonOrNull()
+    return if (json?.getStringOrNull(CodeSerializationKey) == InternalErrorCode.SERIALIZATION_KEY) {
+        try {
+            InternalErrorCode.deserialize(json)
+        } catch (th: Throwable) {
+            throw RuntimeException("Error while using internal deserializer for: $str", th)
+        }
+    } else try {
+        Error.config.deserialize(str) ?: throw UnsupportedOperationException("Please provide correct custom deserializer for: $str")
+    } catch (th: Throwable) {
+        throw RuntimeException("Error while using custom deserializer for: $str", th)
+    }
 }
 
-internal fun deserializeErrorCode(str: String): ErrorCode = try {
-    val json = JSONObject(str)
-    when (json.getStringOrNull(CodeSerializationKey)) {
-        SimpleErrorCode.SERIALIZATION_KEY -> SimpleErrorCode.deserialize(json)
-        ResErrorCode.SERIALIZATION_KEY -> ResErrorCode.deserialize(json)
-        FormattedResErrorCode.SERIALIZATION_KEY -> FormattedResErrorCode.deserialize(json)
-        StaticMessageErrorCode.SERIALIZATION_KEY -> StaticMessageErrorCode.deserialize(json)
-        BaseResErrorCode.SERIALIZATION_KEY -> BaseResErrorCode.deserialize(json)
-        BaseFormattedResErrorCode.SERIALIZATION_KEY -> BaseFormattedResErrorCode.deserialize(json)
-        BaseFallbackDelegate.SERIALIZATION_KEY -> BaseFallbackDelegate.deserialize(json)
-        else -> try {
-            Error.config.deserialize(str) ?: throw UnsupportedOperationException("Please provide correct custom deserializer for: $str")
-        } catch (th: Throwable) {
-            throw RuntimeException("Error while using custom deserializer for: $str", th)
-        }
+internal fun JSONObject.requireCodeSerializationKey(key: String) {
+    if (getStringOrNull(CodeSerializationKey) != key) {
+        throw UnsupportedOperationException("Can't deserialize $key from $this")
     }
-} catch (th: Throwable) {
-    throw RuntimeException("Error while using internal deserializer for: $str", th)
 }
 
 internal fun JSONObject.getStringOrNull(name: String): String? = try {
     getString(name)
+} catch (e: JSONException) {
+    null
+}
+
+internal fun String.toJsonOrNull(): JSONObject? = try {
+    JSONObject(this)
 } catch (e: JSONException) {
     null
 }
@@ -96,8 +104,5 @@ internal class ReplicaThrowable(
     message: String?,
     cause: Throwable?
 ) : Throwable(message, cause) {
-    override fun toString(): String {
-        val id = Error.config.domainToId(className)
-        return "$className($id; ${message})"
-    }
+    override fun toString(): String = "$className(${message})"
 }
