@@ -46,7 +46,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         }
         if (tmp != null) {
             if (tmp is ReplicaThrowable) {
-                append(tmp.classNameFull.toDomain().domainToId())
+                append(tmp.domain.domainToId())
             } else {
                 append(tmp::class.java.toDomain().domainToId())
             }
@@ -64,7 +64,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
         }
         if (tmp != null) {
             if (tmp is ReplicaThrowable) {
-                append(tmp.classNameFull.toDomain())
+                append(tmp.domain)
             } else {
                 append(tmp::class.java.toDomain())
             }

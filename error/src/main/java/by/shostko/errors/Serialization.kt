@@ -76,8 +76,12 @@ fun Error.Companion.deserialize(str: String): Error = try {
     for (i in 1..length) {
         tmp = when (val obj = array[length - i]) {
             is JSONObject -> ReplicaThrowable(
-                classNameFull = obj.getString("class"),
-                classNameSimple = obj.getString("className"),
+                clazz = try {
+                    Class.forName(obj.getString("class"))
+                } catch (e: ClassNotFoundException) {
+                    null
+                },
+                clazzName = obj.getString("className"),
                 message = obj.getStringOrNull("message"),
                 cause = tmp
             )
@@ -102,10 +106,14 @@ fun Error.Companion.deserializeFromPair(pair: Pair<String, Any>): Error = if (pa
 fun Error.Companion.deserializeFromMap(map: Map<String, Any>): Error = map[ErrorMapKey]?.let { deserialize(it.toString()) } ?: NoError
 
 internal class ReplicaThrowable(
-    internal val classNameFull: String,
-    internal val classNameSimple: String,
+    private val clazz: Class<*>?,
+    private val clazzName: String,
     message: String?,
     cause: Throwable?
 ) : Throwable(message, cause) {
-    override fun toString(): String = "$classNameSimple(${message})"
+
+    internal val domain: String
+        get() = clazz?.toDomain() ?: clazzName
+
+    override fun toString(): String = "$clazzName(${message})"
 }
