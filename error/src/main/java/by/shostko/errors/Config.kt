@@ -19,7 +19,7 @@ interface Config {
     fun addErrorId(error: Error, text: CharSequence): CharSequence
     fun unknownError(context: Context, cause: Throwable?): String
 
-    fun prettifyDomain(domain: String): String
+    fun classToDomain(clazz: Class<*>): String
     fun domainToId(domain: String): String
     val nullLog: String
     fun messageToLog(message: CharSequence): String
@@ -62,9 +62,9 @@ interface Config {
 
         override fun unknownError(context: Context, cause: Throwable?): String = context.getString(R.string.by_shostko_error_unknown)
 
-        override fun prettifyDomain(domain: String): String = domain.removeSuffix("ErrorCode")
+        override fun classToDomain(clazz: Class<*>): String = clazz.name.substringAfterLast('.').replace("\$Companion\$","").removeSuffix("ErrorCode")
 
-        override fun domainToId(domain: String): String = prettifyDomain(domain).filter { it.isUpperCase() }
+        override fun domainToId(domain: String): String = domain.filter { it.isUpperCase() }
 
         override fun messageToLog(message: CharSequence): String = message.toString()
 
@@ -113,7 +113,7 @@ interface Config {
         private var shouldAddErrorId: (() -> Boolean)? = null
         private var addErrorIdFunc: ((Error, CharSequence) -> CharSequence)? = null
         private var unknownErrorFunc: ((Context, Throwable?) -> String)? = null
-        private var prettifyDomainFunc: ((String) -> String)? = null
+        private var classToDomainFunc: ((Class<*>) -> String)? = null
         private var domainToIdFunc: ((String) -> String)? = null
         private var defaultDomain: String? = null
         private var nullLog: String? = null
@@ -153,8 +153,8 @@ interface Config {
             unknownErrorFunc = func
         }
 
-        fun prettifyDomain(func: (String) -> String): Builder = apply {
-            prettifyDomainFunc = func
+        fun classToDomain(func: (Class<*>) -> String): Builder = apply {
+            classToDomainFunc = func
         }
 
         fun domainToId(func: (String) -> String): Builder = apply {
@@ -202,7 +202,7 @@ interface Config {
             shouldAddErrorIdFunc = shouldAddErrorId,
             addErrorIdFunc = addErrorIdFunc,
             unknownErrorFunc = unknownErrorFunc,
-            prettifyDomainFunc = prettifyDomainFunc,
+            classToDomainFunc = classToDomainFunc,
             domainToIdFunc = domainToIdFunc,
             nullLog = nullLog ?: Default.nullLog,
             messageToLogFunc = messageToLogFunc,
@@ -220,7 +220,7 @@ interface Config {
         private val shouldAddErrorIdFunc: (() -> Boolean)?,
         private val addErrorIdFunc: ((Error, CharSequence) -> CharSequence)?,
         private val unknownErrorFunc: ((Context, Throwable?) -> String)?,
-        private val prettifyDomainFunc: ((String) -> String)?,
+        private val classToDomainFunc: ((Class<*>) -> String)?,
         private val domainToIdFunc: ((String) -> String)?,
         override val nullLog: String,
         private val messageToLogFunc: ((CharSequence) -> String)?,
@@ -233,7 +233,7 @@ interface Config {
     ) : Config {
         override fun addErrorId(error: Error, text: CharSequence) = addErrorIdFunc?.invoke(error, text) ?: Default.addErrorId(error, text)
         override fun unknownError(context: Context, cause: Throwable?) = unknownErrorFunc?.invoke(context, cause) ?: Default.unknownError(context, cause)
-        override fun prettifyDomain(domain: String): String = prettifyDomainFunc?.invoke(domain) ?: Default.prettifyDomain(domain)
+        override fun classToDomain(clazz: Class<*>): String = classToDomainFunc?.invoke(clazz) ?: Default.classToDomain(clazz)
         override fun domainToId(domain: String) = domainToIdFunc?.invoke(domain) ?: Default.domainToId(domain)
         override fun messageToLog(message: CharSequence) = messageToLogFunc?.invoke(message) ?: Default.messageToLog(message)
         override fun messageToLog(resId: Int) = messageResToLogFunc?.invoke(resId) ?: Default.messageToLog(resId)
@@ -247,9 +247,8 @@ interface Config {
     }
 }
 
-internal fun Any.toDomain(): String = Error.config.prettifyDomain(this::class.java.simpleName)
-internal fun Class<*>.toDomain(): String = Error.config.prettifyDomain(this.simpleName)
-internal fun String.prettifyDomain(): String = Error.config.prettifyDomain(this)
+internal fun Any.toDomain(): String = Error.config.classToDomain(this::class.java)
+internal fun Class<*>.toDomain(): String = Error.config.classToDomain(this)
 internal fun String.domainToId(): String = Error.config.domainToId(this)
 internal fun Int.toResourceName(): String = Error.config.resourceIdToName(this)
 internal fun String.toResourceId(): Int = Error.config.resourceNameToId(this)

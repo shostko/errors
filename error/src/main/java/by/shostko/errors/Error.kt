@@ -45,7 +45,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
             }
         }
         if (tmp != null) {
-            append(config.domainToId(tmp::class.java.simpleName))
+            append(tmp::class.java.toDomain().domainToId())
         }
     }.toString()
 
@@ -59,7 +59,7 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
             }
         }
         if (tmp != null) {
-            append(tmp::class.java.simpleName)
+            append(tmp::class.java.toDomain())
         }
     }.toString()
 
@@ -164,5 +164,5 @@ object UnknownError : Error(NoMessageErrorCode("UE", "UnknownError"), null) {
 private fun Throwable.asString(): String = when (this) {
     is Error -> this.toString()
     is ReplicaThrowable -> this.toString()
-    else -> "${javaClass.simpleName}($message)"
+    else -> "${javaClass.toDomain()}($message)"
 }
