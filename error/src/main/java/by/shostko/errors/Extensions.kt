@@ -18,13 +18,13 @@ fun Throwable.wrap(id: Identifier, @StringRes resId: Int): Error = Error.wrap(th
 fun Throwable.wrap(id: Identifier, @StringRes resId: Int, vararg args: Any): Error = Error.wrap(this, id, resId, args)
 
 fun Throwable.errorIdFull(): String = when (this) {
-    is Error -> code.id().full()
+    is Error -> full()
     is ReplicaThrowable -> domain
     else -> javaClass.toDomain()
 }
 
 fun Throwable.errorIdShort(): String = when (this) {
-    is Error -> code.id().short()
+    is Error -> short()
     is ReplicaThrowable -> domain.domainToId()
     else -> javaClass.toDomain().domainToId()
 }
