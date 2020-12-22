@@ -60,7 +60,8 @@ fun Error.serialize(): String = JSONArray().apply {
             is Error -> put(ErrorCode.serialize(tmp.code))
             else -> put(
                 JSONObject()
-                    .put("class", tmp::class.java.simpleName)
+                    .put("class", tmp::class.java.name)
+                    .put("className", tmp::class.java.simpleName)
                     .put("message", tmp.message)
             )
         }
@@ -75,7 +76,8 @@ fun Error.Companion.deserialize(str: String): Error = try {
     for (i in 1..length) {
         tmp = when (val obj = array[length - i]) {
             is JSONObject -> ReplicaThrowable(
-                className = obj.getString("class"),
+                classNameFull = obj.getString("class"),
+                classNameSimple = obj.getString("className"),
                 message = obj.getStringOrNull("message"),
                 cause = tmp
             )
@@ -100,9 +102,10 @@ fun Error.Companion.deserializeFromPair(pair: Pair<String, Any>): Error = if (pa
 fun Error.Companion.deserializeFromMap(map: Map<String, Any>): Error = map[ErrorMapKey]?.let { deserialize(it.toString()) } ?: NoError
 
 internal class ReplicaThrowable(
-    private val className: String,
+    internal val classNameFull: String,
+    internal val classNameSimple: String,
     message: String?,
     cause: Throwable?
 ) : Throwable(message, cause) {
-    override fun toString(): String = "$className(${message})"
+    override fun toString(): String = "$classNameSimple(${message})"
 }

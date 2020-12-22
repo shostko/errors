@@ -45,7 +45,11 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
             }
         }
         if (tmp != null) {
-            append(tmp::class.java.toDomain().domainToId())
+            if (tmp is ReplicaThrowable) {
+                append(tmp.classNameFull.toDomain().domainToId())
+            } else {
+                append(tmp::class.java.toDomain().domainToId())
+            }
         }
     }.toString()
 
@@ -59,7 +63,11 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
             }
         }
         if (tmp != null) {
-            append(tmp::class.java.toDomain())
+            if (tmp is ReplicaThrowable) {
+                append(tmp.classNameFull.toDomain())
+            } else {
+                append(tmp::class.java.toDomain())
+            }
         }
     }.toString()
 
