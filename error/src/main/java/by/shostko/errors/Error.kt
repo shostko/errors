@@ -119,6 +119,8 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
 
     fun hasCode(code: ErrorCode): Boolean = hasCode { this == code }
 
+    fun hasCode(code: EnumErrorCode): Boolean = hasCode { this === code }
+
     fun hasCode(id: Identifier): Boolean = hasCode { this.id() == id }
 
     fun hasCode(predicate: ErrorCode.() -> Boolean): Boolean {
