@@ -10,6 +10,7 @@ fun Throwable.asError(): Error = Error.cast(this)
 fun Throwable.materialize(): Error = Error.materialize(this)
 
 fun Throwable.wrap(code: ErrorCode): Error = Error.wrap(this, code)
+fun Throwable.wrap(code: EnumErrorCode): Error = Error.wrap(this, code)
 fun Throwable.wrap(builder: ErrorCode.Builder.() -> Unit): Error = Error.wrap(this, builder)
 fun Throwable.wrap(id: Identifier): Error = Error.wrap(this, id)
 fun Throwable.wrap(id: Identifier, message: MessageProvider): Error = Error.wrap(this, id, message)
