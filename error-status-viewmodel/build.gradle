@@ -9,21 +9,12 @@ android {
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
     }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-    }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     compileOnly project(':error')
     compileOnly project(':error-status')
 
-    compileOnly 'androidx.annotation:annotation:1.1.0'
     compileOnly 'androidx.recyclerview:recyclerview:1.1.0'
     compileOnly 'io.reactivex.rxjava2:rxjava:2.2.19'
     compileOnly 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0'

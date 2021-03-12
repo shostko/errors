@@ -9,17 +9,9 @@ android {
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
     }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-    }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     compileOnly project(':error')
 
     compileOnly 'by.shostko:status-handler:0.4.5'

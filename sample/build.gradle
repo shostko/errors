@@ -10,17 +10,18 @@ android {
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
     }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'com.google.android.material:material:1.4.0-alpha01'
-
     implementation project(':error')
+    implementation project(':error-rx')
+    implementation project(':error-rx-worker')
+    implementation project(':error-status')
+    implementation project(':error-status-viewmodel')
+
+    implementation 'com.google.android.material:material:1.4.0-alpha01'
 }
