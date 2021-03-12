@@ -45,6 +45,8 @@ interface Identifier {
     companion object {
         private const val SERIALIZATION_KEY: String = "identifier"
 
+        fun equals(id1: Identifier, id2: Identifier): Boolean = id1.full() == id2.full() && id1.short() == id2.short()
+
         private fun Identifier.serialize(): JSONObject = JSONObject()
             .put("short", short())
             .put("full", full())

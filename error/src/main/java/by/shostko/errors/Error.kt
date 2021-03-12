@@ -117,11 +117,11 @@ sealed class Error(val code: ErrorCode, cause: Throwable?) : Throwable(null, cau
 
     inline fun <reified T> hasCode(): Boolean = hasCode { this is T }
 
-    fun hasCode(code: ErrorCode): Boolean = hasCode { this == code }
+    fun hasCode(code: ErrorCode): Boolean = hasCode { ErrorCode.equals(this, code) }
 
-    fun hasCode(code: EnumErrorCode): Boolean = hasCode { this === code }
+    fun hasCode(code: EnumErrorCode): Boolean = hasCode { ErrorCode.equals(this, code) }
 
-    fun hasCode(id: Identifier): Boolean = hasCode { this.id() == id }
+    fun hasCode(id: Identifier): Boolean = hasCode { Identifier.equals(this.id(), id) }
 
     fun hasCode(predicate: ErrorCode.() -> Boolean): Boolean {
         var tmp: Error? = this

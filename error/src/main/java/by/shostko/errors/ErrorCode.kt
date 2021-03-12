@@ -15,6 +15,7 @@ interface ErrorCode {
         fun build(block: Builder.() -> Unit): ErrorCode = Builder().apply(block).build()
         fun serialize(code: ErrorCode): String = serializeErrorCode(code)
         fun deserialize(str: String): ErrorCode = deserializeErrorCode(str)
+        fun equals(code1: ErrorCode, code2: ErrorCode): Boolean = Identifier.equals(code1.id(), code2.id())
     }
 
     interface Serializable {
